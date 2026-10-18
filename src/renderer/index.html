@@ -8,120 +8,76 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <div class="glow glow-a"></div>
+  <div class="glow glow-b"></div>
+
   <div class="app" id="app">
     <header class="top">
       <div class="brand"><span class="mark"></span>valorant dlss</div>
       <div class="top-actions">
-        <button class="icon" id="btn-info" data-tip="Crédits" aria-label="Crédits">
+        <button class="status" id="status" data-tip="Moteur Visual Enhancer"><i></i><span>Moteur</span></button>
+        <button class="icon" id="btn-info" data-tip="À propos" aria-label="À propos">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
-        </button>
-        <button class="icon" id="btn-settings" data-tip="Réglages" aria-label="Réglages">
-          <svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
         </button>
       </div>
     </header>
 
     <main class="stage">
-      <section class="drop" id="drop" tabindex="0" role="button" aria-label="Ajouter des clips ou des images">
-        <div class="drop-ring"></div>
-        <svg class="drop-icon" viewBox="0 0 24 24"><path d="M12 16V5M7.5 9.5 12 5l4.5 4.5M5 19h14"/></svg>
+      <section class="drop" id="drop" tabindex="0" role="button" aria-label="Ajouter des clips">
+        <span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span>
+        <div class="drop-core">
+          <svg viewBox="0 0 24 24"><path d="M12 16V5M7.5 9.5 12 5l4.5 4.5M5 19h14"/></svg>
+        </div>
         <p class="drop-title">Dépose un clip</p>
         <p class="drop-sub">ou clique pour choisir</p>
       </section>
       <ul class="queue" id="queue" aria-live="polite"></ul>
-      <button class="ghost sm clear" id="btn-clear" hidden>Vider</button>
+      <button class="ghost clear" id="btn-clear" hidden>Vider</button>
     </main>
 
     <footer class="dock">
-      <div class="fine" id="fine" aria-hidden="true">
-        <div class="fine-grid">
-          <label class="field" id="f-tone" data-tip="Contraste et luminosité locaux. Baisse-la si l'image est trop claire.">
-            <span>Tonalité</span><input type="range" id="tone" min="0" max="1" step="0.05"><output></output>
-          </label>
-          <label class="field" id="f-structure" data-tip="Force des détails locaux. Baisse-la si le texte ou le HUD est déformé.">
-            <span>Détails</span><input type="range" id="structure" min="0" max="1" step="0.05"><output></output>
-          </label>
-          <label class="switch" id="f-mask" data-tip="Masque automatique du moteur. À comparer allumé et éteint.">
-            <input type="checkbox" id="automask"><i></i><span>Protection auto</span>
-          </label>
-        </div>
-        <p class="fine-hint" id="fine-hint">Importe d'abord un preset dans les réglages pour débloquer ces curseurs.</p>
+      <div class="seg" id="style" role="radiogroup" aria-label="Style" data-tip="Trois rendus du moteur. Active « Comparer » pour les voir tous.">
+        <span class="seg-pill"></span>
+        <button role="radio" data-v="0">0</button>
+        <button role="radio" data-v="1">1</button>
+        <button role="radio" data-v="2">2</button>
       </div>
-
-      <div class="row">
-        <div class="seg" id="style" role="radiogroup" aria-label="Style" data-tip="Trois rendus du moteur. Active « Comparer » pour les voir tous.">
-          <button role="radio" data-v="0">0</button>
-          <button role="radio" data-v="1">1</button>
-          <button role="radio" data-v="2">2</button>
-          <span class="seg-pill"></span>
-        </div>
-        <label class="field grow" data-tip="Force de l'effet. Plus bas = plus proche de l'image d'origine.">
-          <span>Intensité</span><input type="range" id="strength" min="0" max="2" step="0.05"><output></output>
-        </label>
-        <label class="switch" data-tip="Un export par style (0, 1, 2), rangés dans des sous-dossiers.">
-          <input type="checkbox" id="compare"><i></i><span>Comparer</span>
-        </label>
-        <button class="ghost" id="btn-fine" data-tip="Tonalité, détails, masque">
-          Réglages fins
-          <svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
-        </button>
-        <button class="chip" id="btn-out" data-tip="Dossier de sortie">
-          <svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-          <span id="out-name">Vidéos</span>
-        </button>
-        <button class="primary" id="btn-run">Lancer</button>
-      </div>
+      <label class="field" data-tip="Force de l'effet. Plus bas = plus proche du clip d'origine.">
+        <span>Intensité</span><input type="range" id="strength" min="0" max="2" step="0.05"><output></output>
+      </label>
+      <label class="switch" data-tip="Un export par style, rangés dans des sous-dossiers.">
+        <input type="checkbox" id="compare"><i></i><span>Comparer</span>
+      </label>
+      <label class="switch" data-tip="Méthode qualité TikTok de paschafps : réécrit les timestamps sans ré-encoder (clips en 60, 120 ou 240 fps). Le fichier obtenu est ralenti ×2, ×6 ou ×12.">
+        <input type="checkbox" id="tiktok"><i></i><span>TikTok</span>
+      </label>
+      <button class="chip" id="btn-out" data-tip="Dossier de sortie">
+        <svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        <span id="out-name">Vidéos</span>
+      </button>
+      <button class="primary" id="btn-run">Lancer</button>
     </footer>
   </div>
-
-  <div class="scrim" id="scrim" hidden></div>
-
-  <aside class="drawer" id="drawer" aria-hidden="true" inert>
-    <div class="drawer-head">
-      <h2>Réglages</h2>
-      <button class="icon" id="drawer-close" aria-label="Fermer"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-    </div>
-    <div class="drawer-body">
-      <div class="set" data-tip="Dossier où se trouve VE_CLI.exe">
-        <span class="set-label">Moteur</span>
-        <span class="set-value" id="engine-path">—</span>
-        <button class="ghost sm" id="btn-engine">Changer</button>
-      </div>
-      <pre class="gpu" id="gpu"></pre>
-      <div class="set" data-tip="Qualité d'encodage de la sortie">
-        <span class="set-label">Qualité</span>
-        <select id="quality">
-          <option value="auto">Auto</option><option value="good">Bonne</option><option value="best">Haute</option><option value="max">Maximale</option>
-        </select>
-      </div>
-      <div class="set" data-tip="H.264 passe partout. AV1 demande une RTX 40 ou 50 pour l'encodage matériel.">
-        <span class="set-label">Codec</span>
-        <select id="codec"><option value="h264">H.264</option><option value="hevc">H.265</option><option value="av1">AV1</option></select>
-      </div>
-      <div class="set">
-        <span class="set-label">Conteneur</span>
-        <select id="container"><option value="mp4">MP4</option><option value="mkv">MKV</option><option value="mov">MOV</option></select>
-      </div>
-      <div class="set" data-tip="Nombre d'exports lancés en même temps. Plus = plus de VRAM utilisée.">
-        <span class="set-label">En parallèle</span>
-        <div class="seg sm" id="parallel"><button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button><span class="seg-pill"></span></div>
-      </div>
-      <div class="set" data-tip="Preset exporté depuis Visual Enhancer avec seulement Neural Rendering activé. Sert de base aux réglages fins.">
-        <span class="set-label">Preset</span>
-        <span class="set-value" id="preset-state">Aucun</span>
-        <button class="ghost sm" id="btn-preset">Importer</button>
-        <button class="ghost sm" id="btn-preset-clear" hidden>Retirer</button>
-      </div>
-    </div>
-  </aside>
 
   <div class="modal" id="modal-engine" hidden>
     <div class="card">
       <h3>Visual Enhancer introuvable</h3>
       <p>Valorant DLSS pilote le moteur de Visual Enhancer, installé à côté. Télécharge-le, extrais le ZIP, puis choisis son dossier.</p>
       <div class="card-actions">
-        <button class="ghost" id="m-download">Télécharger</button>
-        <button class="primary" id="m-pick">Choisir le dossier</button>
+        <button class="ghost" data-link="engine">Télécharger</button>
+        <button class="primary" data-pick="engine">Choisir le dossier</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-ffmpeg" hidden>
+    <div class="card">
+      <h3>ffmpeg est nécessaire</h3>
+      <p>La méthode TikTok passe par <strong>ffmpeg.exe</strong>. Télécharge-le toi-même, puis indique où il se trouve.</p>
+      <div class="card-actions">
+        <button class="ghost" id="m-notiktok">Sans TikTok</button>
+        <button class="ghost" data-link="ffmpeg">Télécharger</button>
+        <button class="primary" data-pick="ffmpeg">Choisir ffmpeg.exe</button>
       </div>
     </div>
   </div>
@@ -129,9 +85,12 @@
   <div class="modal" id="modal-info" hidden>
     <div class="card">
       <h3>valorant dlss</h3>
-      <p>Interface par <strong>Morpheen</strong>.</p>
-      <p>Moteur : <strong>Visual Enhancer</strong> par Merserk, projet indépendant, installé séparément. Les rendus se font entièrement en local sur ta carte RTX.</p>
-      <p class="small">Non affilié à Riot Games, NVIDIA ou Visual Enhancer. VALORANT, DLSS et RTX appartiennent à leurs propriétaires.</p>
+      <p>Interface par <strong>Morpheen</strong>.<br>Méthode qualité TikTok par <strong>paschafps</strong>.<br>Moteur : <strong>Visual Enhancer</strong> par Merserk, installé séparément.</p>
+      <div class="paths">
+        <div><span>Moteur</span><code id="p-engine">—</code><button class="ghost sm" data-pick="engine">Changer</button></div>
+        <div><span>ffmpeg</span><code id="p-ffmpeg">—</code><button class="ghost sm" data-pick="ffmpeg">Changer</button></div>
+      </div>
+      <p class="small">Tout se passe en local sur ta carte RTX. Non affilié à Riot Games, NVIDIA ni Visual Enhancer. VALORANT, DLSS et RTX appartiennent à leurs propriétaires.</p>
       <div class="card-actions"><button class="primary" id="m-close">Fermer</button></div>
     </div>
   </div>

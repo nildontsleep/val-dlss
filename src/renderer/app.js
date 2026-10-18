@@ -6,23 +6,16 @@
   const D = (x) => (reduce ? 0 : x);
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
   const basename = (p) => String(p || '').split(/[\\/]/).filter(Boolean).pop() || '';
-  const OPTION_KEYS = ['style', 'strength', 'compare', 'tone', 'structure', 'autoMask', 'quality', 'codec', 'container', 'parallel'];
+  const OPTION_KEYS = ['style', 'strength', 'compare', 'tiktok'];
 
-  const S = {
-    settings: {},
-    exts: new Set(),
-    fine: null,
-    defaultOut: '',
-    inputs: [],
-    items: [],
-    view: 'inputs',
-    running: false,
-    fineOpen: false,
-  };
+  const S = { settings: {}, exts: new Set(), inputs: [], items: [], view: 'inputs', running: false };
   const cards = new Map();
   const early = [];
 
   const STATE_LABEL = { pending: 'En attente', running: 'En cours', done: 'Terminé', error: 'Échec', cancelled: 'Annulé' };
+  const ICON =
+    '<span class="job-ico"><svg viewBox="0 0 24 24"><circle class="base" cx="12" cy="12" r="9"/><circle class="arc" cx="12" cy="12" r="9"/>' +
+    '<path class="tick" d="m8 12.5 3 3 5-6"/><path class="bang" d="M12 7.5v5.5M12 16.5h.01"/></svg></span>';
   const FOLDER_SVG = '<svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
   const X_SVG = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>';
 
@@ -39,77 +32,37 @@
   }
 
   function paintRange(el) {
-    const p = ((el.value - el.min) / (el.max - el.min)) * 100;
-    el.style.setProperty('--p', `${p}%`);
-    const out = el.closest('label').querySelector('output');
-    if (out) out.textContent = Number(el.value).toFixed(2);
-  }
-
-  function setRange(id, v) {
-    const el = $(id);
-    el.value = v;
-    paintRange(el);
+    el.style.setProperty('--p', `${((el.value - el.min) / (el.max - el.min)) * 100}%`);
+    el.closest('label').querySelector('output').textContent = Number(el.value).toFixed(2);
   }
 
   function setSeg(sel, value, animate) {
     const seg = $(sel);
-    const btns = [...seg.querySelectorAll('button')];
-    let target = btns[0];
-    for (const b of btns) {
+    let target = seg.querySelector('button');
+    for (const b of seg.querySelectorAll('button')) {
       const on = Number(b.dataset.v) === Number(value);
       b.classList.toggle('on', on);
       b.setAttribute('aria-checked', String(on));
       if (on) target = b;
     }
-    const x = target.offsetLeft - 3;
-    gsap.to(seg.querySelector('.seg-pill'), { x, duration: animate ? D(0.3) : 0, ease: 'power3.out' });
+    gsap.to(seg.querySelector('.seg-pill'), { x: target.offsetLeft - 3, duration: animate ? D(0.35) : 0, ease: 'back.out(1.6)' });
   }
 
-  function setDisabled(sel, off) {
-    const el = $(sel);
-    el.classList.toggle('disabled', off);
-    el.querySelector('input').disabled = off;
-    if (!el.dataset.tip0) el.dataset.tip0 = el.dataset.tip;
-    el.dataset.tip = off ? 'Disponible après l’import d’un preset (Réglages).' : el.dataset.tip0;
-  }
-
-  function syncFine() {
-    const f = S.fine;
-    setDisabled('#f-tone', !(f && f.tone > 0));
-    setDisabled('#f-structure', !(f && f.structure > 0));
-    setDisabled('#f-mask', !(f && f.autoMask > 0));
-    const hint = $('#fine-hint');
-    const none = f && f.tone + f.structure + f.autoMask === 0;
-    hint.hidden = !!f && !none;
-    hint.textContent = none
-      ? 'Aucun réglage reconnu dans ce preset.'
-      : 'Importe d’abord un preset dans les réglages pour débloquer ces curseurs.';
-  }
-
-  function syncPreset() {
-    $('#preset-state').textContent = S.fine ? 'Importé' : 'Aucun';
-    $('#btn-preset-clear').hidden = !S.fine;
-    $('#btn-preset').textContent = S.fine ? 'Remplacer' : 'Importer';
-  }
-
-  function syncEngine() {
-    $('#engine-path').textContent = S.settings.enginePath || 'Introuvable';
+  function syncStatus() {
+    const ok = !!S.settings.enginePath;
+    $('#status').classList.toggle('ok', ok);
+    $('#status span').textContent = ok ? 'Moteur prêt' : 'Moteur manquant';
   }
 
   function sync() {
     const s = S.settings;
     setSeg('#style', s.style, false);
-    setSeg('#parallel', s.parallel, false);
-    setRange('#strength', s.strength);
-    setRange('#tone', s.tone);
-    setRange('#structure', s.structure);
-    $('#automask').checked = s.autoMask !== false;
+    $('#strength').value = s.strength;
+    paintRange($('#strength'));
     $('#compare').checked = !!s.compare;
-    for (const id of ['quality', 'codec', 'container']) $(`#${id}`).value = s[id];
+    $('#tiktok').checked = s.tiktok !== false;
     $('#out-name').textContent = basename(s.outputDir || S.defaultOut) || 'Sortie';
-    syncEngine();
-    syncFine();
-    syncPreset();
+    syncStatus();
   }
 
   /* ---------- infobulles et toast ---------- */
@@ -122,9 +75,9 @@
     const r = el.getBoundingClientRect();
     const t = tip.getBoundingClientRect();
     const x = clamp(r.left + r.width / 2 - t.width / 2, 8, innerWidth - t.width - 8);
-    let y = r.top - t.height - 8;
-    if (y < 8) y = r.bottom + 8;
-    gsap.fromTo(tip, { x, y: y + 4, opacity: 0 }, { x, y, opacity: 1, duration: D(0.18), overwrite: true });
+    let y = r.top - t.height - 10;
+    if (y < 8) y = r.bottom + 10;
+    gsap.fromTo(tip, { x, y: y + 5, opacity: 0 }, { x, y, opacity: 1, duration: D(0.2), ease: 'power2.out', overwrite: true });
   }
   function hideTip() {
     clearTimeout(tipTimer);
@@ -161,66 +114,50 @@
     toastTl = gsap
       .timeline()
       .set(el, { visibility: 'visible' })
-      .fromTo(el, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: D(0.25) })
+      .fromTo(el, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: D(0.3), ease: 'power3.out' })
       .to(el, { opacity: 0, y: 6, duration: D(0.3), delay: 2.4 })
       .set(el, { visibility: 'hidden' });
   }
 
   const shake = (el) => gsap.fromTo(el, { x: -7 }, { x: 0, duration: D(0.45), ease: 'elastic.out(1, 0.3)' });
 
-  /* ---------- panneaux ---------- */
-  function toggleFine(force) {
-    S.fineOpen = force === undefined ? !S.fineOpen : force;
-    const f = $('#fine');
-    $('#btn-fine').classList.toggle('open', S.fineOpen);
-    f.setAttribute('aria-hidden', String(!S.fineOpen));
-    f.inert = !S.fineOpen;
-    gsap.to(f, S.fineOpen
-      ? { height: 'auto', opacity: 1, duration: D(0.35), ease: 'power2.out' }
-      : { height: 0, opacity: 0, duration: D(0.3), ease: 'power2.inOut' });
-  }
-
-  function openDrawer() {
-    const d = $('#drawer');
-    const sc = $('#scrim');
-    sc.hidden = false;
-    d.inert = false;
-    d.setAttribute('aria-hidden', 'false');
-    gsap.to(sc, { opacity: 1, duration: D(0.25) });
-    gsap.to(d, { xPercent: 0, duration: D(0.4), ease: 'power3.out' });
-    $('#drawer-close').focus();
-    $('#gpu').textContent = '';
-    if (S.settings.enginePath) window.api.devices().then((t) => ($('#gpu').textContent = t || ''));
-  }
-  function closeDrawer() {
-    const d = $('#drawer');
-    const sc = $('#scrim');
-    gsap.to(sc, { opacity: 0, duration: D(0.2) });
-    gsap.to(d, {
-      xPercent: 100,
-      duration: D(0.3),
-      ease: 'power2.in',
-      onComplete: () => {
-        d.inert = true;
-        d.setAttribute('aria-hidden', 'true');
-        sc.hidden = true;
-      },
-    });
-    $('#btn-settings').focus();
-  }
-  const drawerOpen = () => !$('#drawer').inert;
-
-  function openModal(sel) {
-    const m = $(sel);
+  /* ---------- fenêtres ---------- */
+  function openModal(id) {
+    const m = $(id);
+    if (id === '#modal-info') {
+      $('#p-engine').textContent = S.settings.enginePath || 'Introuvable';
+      $('#p-ffmpeg').textContent = S.settings.ffmpegPath || 'Introuvable';
+    }
     m.hidden = false;
     gsap.fromTo(m, { opacity: 0 }, { opacity: 1, duration: D(0.2) });
-    gsap.fromTo(m.querySelector('.card'), { y: 14, scale: 0.97 }, { y: 0, scale: 1, duration: D(0.35), ease: 'power3.out' });
+    gsap.fromTo(m.querySelector('.card'), { y: 16, scale: 0.97 }, { y: 0, scale: 1, duration: D(0.4), ease: 'power3.out' });
   }
-  function closeModal(sel) {
-    const m = $(sel);
+  function closeModal(id) {
+    const m = $(id);
     gsap.to(m, { opacity: 0, duration: D(0.15), onComplete: () => (m.hidden = true) });
   }
-  const openModals = () => ['#modal-engine', '#modal-info'].filter((s) => !$(s).hidden);
+  const openModals = () => ['#modal-engine', '#modal-ffmpeg', '#modal-info'].filter((s) => !$(s).hidden);
+
+  async function pickEngine() {
+    const r = await window.api.pickEngine();
+    if (r.canceled) return;
+    if (!r.ok) return toast('VE_CLI.exe introuvable dans ce dossier');
+    S.settings.enginePath = r.path;
+    syncStatus();
+    $('#p-engine').textContent = r.path;
+    if (!$('#modal-engine').hidden) closeModal('#modal-engine');
+    toast('Moteur trouvé');
+  }
+
+  async function pickFfmpeg() {
+    const r = await window.api.pickFfmpeg();
+    if (r.canceled) return;
+    if (!r.ok) return toast('Ce ffmpeg.exe ne démarre pas');
+    S.settings.ffmpegPath = r.path;
+    $('#p-ffmpeg').textContent = r.path;
+    if (!$('#modal-ffmpeg').hidden) closeModal('#modal-ffmpeg');
+    toast('ffmpeg prêt');
+  }
 
   /* ---------- file d'attente ---------- */
   function setCompact(on) {
@@ -229,8 +166,9 @@
     const h0 = d.offsetHeight;
     d.classList.toggle('compact', on);
     const h1 = d.offsetHeight;
-    if (on) gsap.fromTo(d, { height: h0 }, { height: h1, duration: D(0.45), ease: 'power3.inOut', clearProps: 'height' });
-    else gsap.fromTo(d, { opacity: 0, scale: 0.98 }, { opacity: 1, scale: 1, duration: D(0.4), clearProps: 'all' });
+    if (on) gsap.fromTo(d, { height: h0 }, { height: h1, duration: D(0.5), ease: 'power3.inOut', clearProps: 'height' });
+    else gsap.fromTo(d, { opacity: 0, scale: 0.98 }, { opacity: 1, scale: 1, duration: D(0.45), ease: 'power3.out', clearProps: 'all' });
+    $('#drop .drop-title').textContent = on ? 'Ajouter d’autres clips' : 'Dépose un clip';
   }
 
   function makeCard(it) {
@@ -238,7 +176,7 @@
     li.className = 'job';
     li.dataset.state = it.state;
     li.innerHTML =
-      '<div class="job-title"><span class="job-name"></span><span class="job-tag"></span></div>' +
+      `${ICON}<div class="job-title"><span class="job-name"></span><span class="job-tag"></span></div>` +
       '<span class="job-state"></span>' +
       `<button class="icon sm open" data-tip="Ouvrir le dossier" aria-label="Ouvrir le dossier">${FOLDER_SVG}</button>` +
       `<button class="icon sm rm" data-tip="Retirer" aria-label="Retirer">${X_SVG}</button>` +
@@ -263,7 +201,7 @@
     const has = S.items.length > 0;
     setCompact(has);
     $('#btn-clear').hidden = !has || S.running;
-    if (has) gsap.from(q.children, { y: 12, opacity: 0, stagger: D(0.05), duration: D(0.35), ease: 'power2.out', clearProps: 'all' });
+    if (has) gsap.from(q.children, { y: 14, opacity: 0, stagger: D(0.06), duration: D(0.4), ease: 'power3.out', clearProps: 'all' });
   }
 
   function buildInputs() {
@@ -275,8 +213,7 @@
   function removeItem(key) {
     if (S.view === 'inputs') {
       S.inputs = S.inputs.filter((f) => f.path !== key);
-      buildInputs();
-      return;
+      return buildInputs();
     }
     S.items = S.items.filter((i) => i.key !== key);
     const li = cards.get(key);
@@ -288,12 +225,18 @@
   function paintCard(it) {
     const li = cards.get(it.key);
     if (!li) return;
+    const was = li.dataset.state;
     li.dataset.state = it.state;
-    const pct = it.state === 'running' && it.progress != null ? ` · ${Math.round(it.progress)}%` : '';
-    li.querySelector('.job-state').textContent = STATE_LABEL[it.state] + pct;
+    let label = STATE_LABEL[it.state];
+    if (it.state === 'running') {
+      if (it.phase === 'finish') label = 'Finition TikTok';
+      else if (it.progress != null) label += ` · ${Math.round(it.progress)}%`;
+    }
+    li.querySelector('.job-state').textContent = label;
     const msg = li.querySelector('.job-msg');
     msg.textContent = it.message || '';
     msg.title = it.message || '';
+
     const bar = li.querySelector('.track i');
     gsap.killTweensOf(bar);
     if (it.state === 'running' && it.progress == null) {
@@ -304,14 +247,18 @@
         gsap.to(bar, { x: '340%', duration: 1.1, repeat: -1, ease: 'power1.inOut' });
       }
     } else {
-      const w = it.state === 'done' ? 100 : it.progress || 0;
       gsap.set(bar, { x: 0 });
-      gsap.to(bar, { width: `${w}%`, duration: D(0.35), ease: 'power2.out' });
+      gsap.to(bar, { width: `${it.state === 'done' ? 100 : it.progress || 0}%`, duration: D(0.35), ease: 'power2.out' });
+    }
+    if (it.state === 'done' && was !== 'done') {
+      gsap.fromTo(li.querySelector('.tick'), { strokeDashoffset: 24 }, { strokeDashoffset: 0, duration: D(0.5), ease: 'power2.out' });
+      gsap.fromTo(li, { scale: 1.012 }, { scale: 1, duration: D(0.55), ease: 'back.out(3)' });
     }
   }
 
   function applyEvent(it, ev) {
     it.state = ev.state;
+    it.phase = ev.phase || null;
     if (ev.state === 'running') it.progress = ev.progress ?? null;
     if (ev.state === 'done') it.progress = 100;
     it.message = ev.message || '';
@@ -333,7 +280,7 @@
       S.inputs.push({ path: p, name: basename(p) });
       added++;
     }
-    if (skipped) toast(skipped === 1 ? '1 fichier ignoré (format non pris en charge)' : `${skipped} fichiers ignorés`);
+    if (skipped) toast(skipped === 1 ? '1 fichier ignoré (ce n’est pas un clip)' : `${skipped} fichiers ignorés`);
     if (added || S.view === 'jobs') buildInputs();
   }
 
@@ -347,23 +294,20 @@
   }
 
   async function run() {
-    gsap.fromTo('#btn-run', { scale: 0.95 }, { scale: 1, duration: D(0.4), ease: 'back.out(3)' });
-    if (S.running) {
-      window.api.cancel();
-      return;
-    }
+    gsap.fromTo('#btn-run', { scale: 0.94 }, { scale: 1, duration: D(0.45), ease: 'back.out(3)' });
+    if (S.running) return window.api.cancel();
     if (!S.inputs.length) {
       shake($('#drop'));
-      toast('Ajoute au moins un fichier');
-      return;
+      return toast('Ajoute au moins un clip');
     }
     const options = {};
     for (const k of OPTION_KEYS) options[k] = S.settings[k];
     const res = await window.api.start({ files: S.inputs.map((f) => f.path), options });
     if (!res.ok) {
       if (res.error === 'engine') openModal('#modal-engine');
+      else if (res.error === 'ffmpeg') openModal('#modal-ffmpeg');
       else if (res.error === 'busy') toast('Un rendu est déjà en cours');
-      else toast('Aucun fichier valide');
+      else toast('Aucun clip valide');
       return;
     }
     S.view = 'jobs';
@@ -382,77 +326,39 @@
       const it = S.items.find((i) => i.key === ev.id);
       if (it) applyEvent(it, ev);
     }
-    if (res.fine && Object.values(res.fine).some((n) => n === 0)) toast('Certains réglages fins n’ont rien modifié');
-  }
-
-  /* ---------- moteur et preset ---------- */
-  async function pickEngine() {
-    const r = await window.api.pickEngine();
-    if (r.canceled) return;
-    if (!r.ok) {
-      toast('VE_CLI.exe introuvable dans ce dossier');
-      return;
-    }
-    S.settings.enginePath = r.path;
-    syncEngine();
-    if (!$('#modal-engine').hidden) closeModal('#modal-engine');
-    toast('Moteur trouvé');
-    if (drawerOpen()) window.api.devices().then((t) => ($('#gpu').textContent = t || ''));
-  }
-
-  async function importPreset() {
-    const r = await window.api.importPreset();
-    if (r.canceled) return;
-    if (!r.ok) {
-      toast('Preset illisible');
-      return;
-    }
-    S.fine = r.fine;
-    syncFine();
-    syncPreset();
-    toast(r.fine.tone + r.fine.structure + r.fine.autoMask ? 'Preset importé' : 'Aucun réglage reconnu dans ce preset');
   }
 
   /* ---------- branchements ---------- */
   function bind() {
     bindTips();
 
-    for (const [id, key] of [['#strength', 'strength'], ['#tone', 'tone'], ['#structure', 'structure']]) {
-      const el = $(id);
-      el.addEventListener('input', () => {
-        paintRange(el);
-        save({ [key]: Number(el.value) });
-      });
-    }
-    $('#automask').addEventListener('change', (e) => save({ autoMask: e.target.checked }));
-    $('#compare').addEventListener('change', (e) => save({ compare: e.target.checked }));
-    for (const id of ['quality', 'codec', 'container']) $(`#${id}`).addEventListener('change', (e) => save({ [id]: e.target.value }));
-    for (const [sel, key] of [['#style', 'style'], ['#parallel', 'parallel']]) {
-      $(sel).addEventListener('click', (e) => {
-        const b = e.target.closest('button[data-v]');
-        if (!b) return;
-        save({ [key]: Number(b.dataset.v) });
-        setSeg(sel, b.dataset.v, true);
-      });
-    }
-
-    $('#btn-fine').addEventListener('click', () => toggleFine());
-    $('#btn-run').addEventListener('click', run);
-    $('#btn-settings').addEventListener('click', openDrawer);
-    $('#drawer-close').addEventListener('click', closeDrawer);
-    $('#scrim').addEventListener('click', closeDrawer);
-    $('#btn-info').addEventListener('click', () => openModal('#modal-info'));
-    $('#m-close').addEventListener('click', () => closeModal('#modal-info'));
-    $('#m-pick').addEventListener('click', pickEngine);
-    $('#m-download').addEventListener('click', () => window.api.openReleases());
-    $('#btn-engine').addEventListener('click', pickEngine);
-    $('#btn-preset').addEventListener('click', importPreset);
-    $('#btn-preset-clear').addEventListener('click', async () => {
-      await window.api.clearPreset();
-      S.fine = null;
-      syncFine();
-      syncPreset();
+    $('#strength').addEventListener('input', (e) => {
+      paintRange(e.target);
+      save({ strength: Number(e.target.value) });
     });
+    $('#compare').addEventListener('change', (e) => save({ compare: e.target.checked }));
+    $('#tiktok').addEventListener('change', (e) => {
+      save({ tiktok: e.target.checked });
+      if (e.target.checked && !S.settings.ffmpegPath) openModal('#modal-ffmpeg');
+    });
+    $('#style').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-v]');
+      if (!b) return;
+      save({ style: Number(b.dataset.v) });
+      setSeg('#style', b.dataset.v, true);
+    });
+
+    $('#btn-run').addEventListener('click', run);
+    $('#btn-info').addEventListener('click', () => openModal('#modal-info'));
+    $('#status').addEventListener('click', () => openModal(S.settings.enginePath ? '#modal-info' : '#modal-engine'));
+    $('#m-close').addEventListener('click', () => closeModal('#modal-info'));
+    $('#m-notiktok').addEventListener('click', () => {
+      $('#tiktok').checked = false;
+      save({ tiktok: false });
+      closeModal('#modal-ffmpeg');
+    });
+    for (const b of document.querySelectorAll('[data-pick]')) b.addEventListener('click', () => (b.dataset.pick === 'engine' ? pickEngine() : pickFfmpeg()));
+    for (const b of document.querySelectorAll('[data-link]')) b.addEventListener('click', () => window.api.openLink(b.dataset.link));
     $('#btn-out').addEventListener('click', async () => {
       const r = await window.api.pickOutput();
       if (!r.ok) return;
@@ -478,7 +384,7 @@
     const hasFiles = (e) => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
     const setDrag = (on) => {
       drop.classList.toggle('drag', on);
-      gsap.to(drop, { scale: on ? 1.012 : 1, duration: D(0.2) });
+      gsap.to(drop, { scale: on ? 1.012 : 1, duration: D(0.25), ease: 'power2.out' });
     };
     window.addEventListener('dragenter', (e) => {
       e.preventDefault();
@@ -504,7 +410,6 @@
       if (e.key === 'Escape') {
         const m = openModals();
         if (m.length) closeModal(m[0]);
-        else if (drawerOpen()) closeDrawer();
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'o') {
         e.preventDefault();
         pickFiles();
@@ -526,32 +431,32 @@
   }
 
   function intro() {
-    gsap.set('#drawer', { xPercent: 100, x: 0 });
     gsap.set('#toast', { xPercent: -50 });
-    gsap.set('#scrim', { opacity: 0 });
-    $('#fine').inert = true;
     gsap.set('#app', { autoAlpha: 1 });
     const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-    tl.from('.top', { y: -14, opacity: 0, duration: D(0.5) })
-      .from('#drop', { y: 18, opacity: 0, scale: 0.98, duration: D(0.6) }, '-=0.3')
-      .from('.dock', { y: 30, opacity: 0, duration: D(0.55) }, '-=0.4');
-    if (!reduce) gsap.to('.drop-ring', { scale: 1.12, opacity: 0.06, duration: 2.4, repeat: -1, yoyo: true, ease: 'sine.inOut' });
+    tl.from('.top', { y: -16, opacity: 0, duration: D(0.6) })
+      .from('#drop', { y: 22, opacity: 0, scale: 0.98, duration: D(0.7) }, '-=0.35')
+      .from('.dock', { y: 34, opacity: 0, duration: D(0.6) }, '-=0.45');
+    if (reduce) return;
+    document.querySelectorAll('.ring').forEach((r, i) => {
+      gsap.fromTo(r, { scale: 0.6, opacity: 0.35 }, { scale: 2.6, opacity: 0, duration: 4, repeat: -1, ease: 'power1.out', delay: i * 1.3 });
+    });
+    gsap.to('.drop-core', { y: -5, duration: 2.2, repeat: -1, yoyo: true, ease: 'sine.inOut' });
   }
 
   async function init() {
     try {
       const b = await window.api.boot();
       S.settings = b.settings;
-      S.exts = new Set([...b.exts.video, ...b.exts.image]);
-      S.fine = b.fine;
       S.defaultOut = b.defaultOutputDir;
+      S.exts = new Set(b.exts);
       bind();
       sync();
       intro();
-      if (!S.settings.enginePath) setTimeout(() => openModal('#modal-engine'), D(700));
+      if (!S.settings.enginePath) setTimeout(() => openModal('#modal-engine'), D(800));
     } catch (err) {
       console.error(err);
-      document.getElementById('app').style.visibility = 'visible';
+      $('#app').style.visibility = 'visible';
     }
   }
 

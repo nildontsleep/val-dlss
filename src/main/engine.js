@@ -2,6 +2,7 @@
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
+const { finish } = require('./tiktok');
 
 const ENGINE_EXE = 'VE_CLI.exe';
 
@@ -36,6 +37,11 @@ function autodetect(roots) {
   return null;
 }
 
+// Dossier de travail caché de la méthode TikTok : supprimé quand le rendu échoue ou est annulé.
+function dropWork(job) {
+  if (job.tiktok && path.basename(job.outDir).startsWith('.vdlss-')) fs.rmSync(job.outDir, { recursive: true, force: true });
+}
+
 function killTree(child) {
   if (process.platform === 'win32') {
     spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true });
@@ -45,31 +51,12 @@ function killTree(child) {
 }
 
 class Engine {
-  // `prefixArgs` sert aux tests : exe = node, prefixArgs = [faux-cli.js].
-  constructor({ exe, prefixArgs = [] }) {
+  // `prefixArgs` / `ffmpegPrefix` servent aux tests : exe = node, prefixArgs = [faux-cli.js].
+  constructor({ exe, prefixArgs = [], ffmpeg = '', ffmpegPrefix = [] }) {
     this.exe = exe;
     this.prefixArgs = prefixArgs;
-  }
-
-  devices(timeoutMs = 15000) {
-    return new Promise((resolve) => {
-      let out = '';
-      const child = spawn(this.exe, [...this.prefixArgs, 'devices'], { windowsHide: true });
-      const timer = setTimeout(() => killTree(child), timeoutMs);
-      const grab = (d) => {
-        if (out.length < 4000) out += d;
-      };
-      child.stdout.on('data', grab);
-      child.stderr.on('data', grab);
-      child.on('error', () => {
-        clearTimeout(timer);
-        resolve('');
-      });
-      child.on('close', () => {
-        clearTimeout(timer);
-        resolve(out.trim());
-      });
-    });
+    this.ffmpeg = ffmpeg;
+    this.ffmpegPrefix = ffmpegPrefix;
   }
 
   // Lance les jobs avec `concurrency` processus en parallèle. Retourne { done, cancel }.
@@ -119,14 +106,19 @@ class Engine {
         child.stderr.on('data', onChunk);
         child.on('error', (err) => {
           running.delete(job.id);
+          dropWork(job);
           onEvent({ id: job.id, state: 'error', message: err.message });
           resolve();
         });
-        child.on('close', (code) => {
+        child.on('close', async (code) => {
           running.delete(job.id);
           if (cancelled) {
+            dropWork(job);
             onEvent({ id: job.id, state: 'cancelled' });
-          } else if (code === 0) {
+          } else if (code !== 0) {
+            dropWork(job);
+            onEvent({ id: job.id, state: 'error', message: tail.slice(-2).join(' · ') || `code ${code}` });
+          } else if (!job.tiktok) {
             let result = null;
             try {
               result = JSON.parse(stdout);
@@ -135,7 +127,20 @@ class Engine {
             }
             onEvent({ id: job.id, state: 'done', progress: 100, result });
           } else {
-            onEvent({ id: job.id, state: 'error', message: tail.slice(-2).join(' · ') || `code ${code}` });
+            onEvent({ id: job.id, state: 'running', phase: 'finish', progress: null });
+            const res = await finish({
+              ffmpeg: this.ffmpeg,
+              prefix: this.ffmpegPrefix,
+              workDir: job.outDir,
+              finalDir: job.finalDir,
+              stem: job.stem,
+              track: (c) => running.set(`${job.id}:post`, c),
+              isCancelled: () => cancelled,
+            });
+            running.delete(`${job.id}:post`);
+            if (res.cancelled || cancelled) onEvent({ id: job.id, state: 'cancelled' });
+            else if (res.ok) onEvent({ id: job.id, state: 'done', progress: 100, result: { output: res.output } });
+            else onEvent({ id: job.id, state: 'error', message: res.error });
           }
           resolve();
         });

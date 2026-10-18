@@ -7,11 +7,12 @@ const { Engine, findEngine, autodetect } = require('../src/main/engine');
 const { buildJobs } = require('../src/main/args');
 
 const fake = path.join(__dirname, 'fake-cli.js');
-const engine = new Engine({ exe: process.execPath, prefixArgs: [fake] });
+const fakeFfmpeg = path.join(__dirname, 'fake-ffmpeg.js');
+const engine = new Engine({ exe: process.execPath, prefixArgs: [fake], ffmpeg: process.execPath, ffmpegPrefix: [fakeFfmpeg] });
 
 function collect(files, opts = {}) {
   const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vdlss-'));
-  const jobs = buildJobs({ files, options: opts.options || {}, outputDir });
+  const jobs = buildJobs({ files, options: { tiktok: false, ...opts.options }, outputDir });
   const events = [];
   const run = engine.run(jobs, { concurrency: opts.concurrency || 1, onEvent: (e) => events.push(e) });
   return { jobs, events, run, outputDir };
@@ -25,6 +26,31 @@ test('un job réussit, remonte sa progression et son résultat JSON', async () =
   const last = mine.at(-1);
   assert.equal(last.state, 'done');
   assert.equal(last.result.style, '2');
+  assert.ok(fs.existsSync(last.result.output));
+});
+
+test('avec la méthode TikTok : finition ffmpeg, fichier final, aucun dossier caché', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vdlss-tk-'));
+  const clip = path.join(dir, 'clip_120fps.mp4');
+  fs.writeFileSync(clip, 'x');
+  const outputDir = path.join(dir, 'out');
+  const jobs = buildJobs({ files: [clip], options: {}, outputDir });
+  const events = [];
+  await engine.run(jobs, { onEvent: (e) => events.push(e) }).done;
+  assert.ok(events.some((e) => e.phase === 'finish'));
+  const last = events.at(-1);
+  assert.equal(last.state, 'done');
+  assert.equal(last.result.output, path.join(outputDir, 'clip_120fps_tiktok.mp4'));
+  assert.deepEqual(fs.readdirSync(outputDir), ['clip_120fps_tiktok.mp4']);
+});
+
+test('un rendu en échec ne laisse pas de dossier caché', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vdlss-tk-'));
+  const jobs = buildJobs({ files: ['fail.mp4'], options: {}, outputDir: dir });
+  const events = [];
+  await engine.run(jobs, { onEvent: (e) => events.push(e) }).done;
+  assert.equal(events.at(-1).state, 'error');
+  assert.deepEqual(fs.readdirSync(dir), []);
 });
 
 test('un job en échec remonte le message de la CLI', async () => {
@@ -49,10 +75,6 @@ test('annuler marque les jobs non lancés comme annulés', async () => {
   assert.deepEqual(await run.done, { cancelled: true });
   assert.ok(events.filter((e) => e.state === 'cancelled').length >= 2);
   assert.ok(!events.some((e) => e.state === 'error'));
-});
-
-test('devices relaie la sortie de la CLI', async () => {
-  assert.match(await engine.devices(), /RTX 5070 Ti/);
 });
 
 test('findEngine et autodetect trouvent le dossier de Visual Enhancer', () => {
