@@ -2,7 +2,7 @@
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
-const { finish } = require('./tiktok');
+const { finish, run: runCapture, lastLine } = require('./tiktok');
 
 const ENGINE_EXE = 'VE_CLI.exe';
 
@@ -117,11 +117,18 @@ class Engine {
             onEvent({ id: job.id, state: 'cancelled' });
           } else if (code !== 0) {
             dropWork(job);
-            onEvent({ id: job.id, state: 'error', message: tail.slice(-2).join(' · ') || `code ${code}` });
+            let reason = '';
+            try {
+              reason = JSON.parse(stdout).items?.[0]?.error || '';
+            } catch {
+              /* pas de JSON : on garde la fin de stderr */
+            }
+            onEvent({ id: job.id, state: 'error', message: reason || tail.slice(-2).join(' · ') || `code ${code}` });
           } else if (!job.tiktok) {
             let result = null;
             try {
-              result = JSON.parse(stdout);
+              const item = JSON.parse(stdout).items?.[0];
+              if (item?.output_path) result = { output: item.output_path };
             } catch {
               /* sortie non JSON : sans importance */
             }
@@ -140,7 +147,7 @@ class Engine {
             running.delete(`${job.id}:post`);
             if (res.cancelled || cancelled) onEvent({ id: job.id, state: 'cancelled' });
             else if (res.ok) onEvent({ id: job.id, state: 'done', progress: 100, result: { output: res.output } });
-            else onEvent({ id: job.id, state: 'error', message: res.error });
+            else onEvent({ id: job.id, state: 'error', code: res.code, params: res.params });
           }
           resolve();
         });
@@ -165,4 +172,22 @@ class Engine {
   }
 }
 
-module.exports = { Engine, ENGINE_EXE, findEngine, autodetect };
+// Valide un preset sans rien rendre : `--dry-run --json` lit le preset et décrit le pipeline.
+async function validatePreset({ exe, prefix = [], file, presetPath, style, strength }) {
+  const args = [...prefix, 'render', file, '--preset', presetPath, '--style', String(style), '--strength', strength.toFixed(2), '--dry-run', '--json'];
+  const r = await runCapture(exe, args);
+  let plan = null;
+  try {
+    plan = JSON.parse(r.stdout);
+  } catch {
+    /* sortie non JSON */
+  }
+  if (plan && plan.ok === true) {
+    const stages = plan.items?.[0]?.stages;
+    if (stages !== undefined && !/neural/i.test(JSON.stringify(stages))) return { ok: false, detail: 'neural stage not enabled' };
+    return { ok: true };
+  }
+  return { ok: false, detail: (plan && plan.error) || lastLine(r.stderr) || `code ${r.code}` };
+}
+
+module.exports = { Engine, ENGINE_EXE, findEngine, autodetect, killTree, validatePreset };

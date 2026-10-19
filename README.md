@@ -1,57 +1,81 @@
 # Valorant DLSS
 
-Une app **locale**, **Windows uniquement** et volontairement minimale pour appliquer le *Neural Rendering* sur tes clips Valorant : tu déposes un clip, tu choisis un style, tu lances.
+A **local**, **Windows-only**, deliberately minimal app that applies Neural Rendering to your Valorant clips: drop a clip, pick a style, run. English by default, French one click away (EN | FR, top right).
 
-Interface par **Morpheen**. Méthode qualité TikTok par **paschafps**. Moteur : [Visual Enhancer](https://github.com/Merserk/dlss5-visual-enhancer) par Merserk.
+Interface by **Morpheen**. TikTok quality method by **paschafps**. Engine: [Visual Enhancer](https://github.com/Merserk/dlss5-visual-enhancer) by Merserk.
 
-## Utilisation
+## Use it
 
-Valorant DLSS ne contient **ni le moteur ni ffmpeg** : il pilote ceux de ta machine.
+Valorant DLSS ships **neither the engine nor ffmpeg**: it drives the ones on your machine.
 
-1. Télécharge et extrais [Visual Enhancer](https://github.com/Merserk/dlss5-visual-enhancer/releases).
-2. Télécharge `Valorant-DLSS-x.y.z.exe` depuis les [Releases](../../releases) de ce dépôt et lance-le (version portable).
-3. L'app cherche seule Visual Enhancer (Téléchargements, Bureau, Documents) et `ffmpeg.exe` (dossier de Visual Enhancer, puis `PATH`). Sinon, elle te demande de les indiquer, une seule fois.
-4. Dépose un clip, **Lancer**. Les exports sortent dans `Vidéos\Valorant DLSS`.
+1. Download and extract [Visual Enhancer](https://github.com/Merserk/dlss5-visual-enhancer/releases).
+2. Download `Valorant-DLSS-x.y.z.exe` from this repo's [Releases](../../releases) and run it (portable).
+3. The app looks for Visual Enhancer (Downloads, Desktop, Documents) and `ffmpeg.exe` (Visual Enhancer's folder, then `PATH`) by itself. Otherwise it asks you once.
+4. Drop a clip, **Run**. Exports land in `Videos\Valorant DLSS`.
 
-Tout reste sur ta machine : aucun réseau, aucune télémétrie.
+Everything stays on your machine: no network, no telemetry.
 
-## Les réglages
+## Settings
 
-| Réglage | Effet |
+| Setting | Effect |
 | --- | --- |
-| Style 0 / 1 / 2 | Les trois rendus du moteur |
-| Intensité | Force de l'effet (0 à 2) |
-| Comparer | Un export par style, rangés dans des sous-dossiers |
-| TikTok | Applique la méthode qualité TikTok (voir ci-dessous) |
+| Style 0 / 1 / 2 | The engine's three renders |
+| Strength | Effect strength (0 to 2) |
+| Compare | One export per style, in subfolders |
+| TikTok | The TikTok quality method (below) |
+| 👁 Preview | Renders **one frame** (original vs result, draggable divider) and refreshes as you change settings |
+| ⚙ Advanced | Tone, Detail, Skin, Passes, Auto mask, encode Quality, and presets |
 
-Les exports sont en H.264/MP4, qualité « very high » de Visual Enhancer. Passe la souris sur un réglage pour voir son infobulle.
+Hover a setting for its tooltip.
 
-### Méthode qualité TikTok
+### Advanced and presets
 
-Équivalent de `paschafps_TikTok_Quality_Method_v2.bat` : après le rendu, ffmpeg réécrit les timestamps du clip **sans ré-encoder** (`-itsscale`, flux copiés) pour des clips en **60, 120 ou 240 fps** (×2, ×6, ×12). Les fps sont détectés automatiquement.
+Tone, Detail and Skin map to Visual Enhancer's *local tone strength*, *local structure strength* and *skin structure strength*; Passes to *NR passes*; Auto mask to *automatic mask*. They are passed through a preset file that the app writes in Visual Enhancer's own format (read from its source, `Settings::importPreset`) and checks with `--dry-run` before every run, so a rejected preset is reported instead of silently ignored. If your Visual Enhancer is older and refuses the newest `schema_version`, the app falls back to older ones. The preset is only written when a value differs from Visual Enhancer's defaults.
 
-- Le fichier `_tiktok.mp4` obtenu est **ralenti** (×2, ×6 ou ×12) : ce n'est pas un clip à regarder tel quel.
-- Si les fps ne sont pas 60, 120 ou 240, ou si ffmpeg échoue, le rendu Neural Rendering est conservé tel quel et l'app l'indique.
-- Je n'ai pas mesuré l'effet de cette méthode sur la qualité vue par TikTok ; l'app reproduit la commande du script, c'est tout. Désactive « TikTok » pour obtenir le rendu normal.
+Presets are your own saved combinations of style, strength and these settings (stored locally). A small dot on the ⚙ button tells you when advanced values are not the defaults.
 
-## Développement
+### Preview
+
+The preview extracts one frame with ffmpeg and renders it through Visual Enhancer's *image* pipeline. A single frame has no motion (no optical flow), so the final video can differ slightly. The slider picks the frame; it needs ffmpeg.
+
+### TikTok quality method
+
+Equivalent of `paschafps_TikTok_Quality_Method_v2.bat`: after the render, ffmpeg rewrites the clip's timestamps **without re-encoding** (`-itsscale`, streams copied) for **60, 120 or 240 fps** clips (×2, ×6, ×12). fps are detected automatically.
+
+- The resulting `_tiktok.mp4` is **slowed down** (×2, ×6 or ×12): it is not a file to watch as is.
+- If the fps is not 60, 120 or 240, or ffmpeg fails, the Neural Rendering output is kept as is and the app says so.
+- I did not measure this method's effect on TikTok's quality; the app reproduces the script's command, nothing more. Turn "TikTok" off for a normal-speed file.
+
+## Development
 
 ```bash
 npm ci
-npm test        # tests unitaires et moteur (sans GPU, avec de faux moteur et ffmpeg)
-npm start       # lance l'app (Electron)
-npm run dist    # portable Windows dans dist/ (à lancer sous Windows)
+npm test        # unit and engine tests (no GPU: fake engine and ffmpeg)
+npm start       # run the app (Electron)
+npm run dist    # Windows portable in dist/ (run on Windows)
 ```
 
-La CI (`.github/workflows/build.yml`) teste et construit sur `windows-latest`. Pousser un tag `v*` publie l'exécutable en Release :
+CI (`.github/workflows/build.yml`) tests and builds on `windows-latest`. Pushing a `v*` tag publishes the executable as a Release:
 
 ```bash
-git tag v0.1.0 && git push origin v0.1.0
+git tag v0.2.0 && git push origin v0.2.0
 ```
 
-## Avertissements
+## Disclaimers
 
-- Projet indépendant, **non affilié** à Riot Games, NVIDIA ni à Visual Enhancer. VALORANT, DLSS et RTX appartiennent à leurs propriétaires. Le nom « Valorant DLSS » est un titre de travail : change-le avant une diffusion publique.
-- Export hors ligne uniquement. Ne lance pas de rendu neural pendant une partie en ligne : l'anticheat Vanguard n'apprécie pas les overlays ni les injections.
-- Visual Enhancer expose le Neural Rendering via un modèle NVIDIA qui n'est pas encore une API publique stable ; son fonctionnement et sa légalité relèvent de ce projet, pas de celui-ci. Ce dépôt ne redistribue aucun de ses fichiers, ni ffmpeg.
-- Animations : [GSAP](https://gsap.com). Police : [Inter](https://rsms.me/inter/) (SIL OFL). Les deux sont embarquées localement.
+- Independent project, **not affiliated** with Riot Games, NVIDIA or Visual Enhancer. VALORANT, DLSS and RTX belong to their owners. "Valorant DLSS" is a working title: change it before any public release.
+- Offline export only. Don't run neural rendering during an online match: the Vanguard anti-cheat dislikes overlays and injections.
+- Visual Enhancer exposes Neural Rendering through an NVIDIA model that is not a stable public API yet; how it works and its legal status are that project's business, not this one's. This repo redistributes none of its files, nor ffmpeg.
+- Animations: [GSAP](https://gsap.com). Font: [Inter](https://rsms.me/inter/) (SIL OFL). Both are bundled locally.
+
+---
+
+## Français
+
+App **locale**, **Windows uniquement** et minimale pour appliquer le Neural Rendering à tes clips Valorant. L'anglais est la langue par défaut ; passe en français avec le sélecteur **EN | FR** en haut à droite (le choix est mémorisé).
+
+- **Utilisation** : télécharge Visual Enhancer et lance `Valorant-DLSS-x.y.z.exe` (portable). L'app trouve seule Visual Enhancer et ffmpeg, sinon elle te les demande une fois.
+- **Aperçu 👁** : rend **une seule frame** (original / résultat avec curseur) et se met à jour quand tu changes un réglage. Une frame n'a pas de mouvement : la vidéo finale peut légèrement différer.
+- **Avancé ⚙** : Tonalité, Détails, Peau, Passes, Masque auto, Qualité d'encodage, et **presets** (tes combinaisons enregistrées). Ces réglages passent par un preset au format de Visual Enhancer, validé par `--dry-run` avant chaque rendu.
+- **TikTok** : méthode qualité de paschafps (`-itsscale` ×2/×6/×12 pour 60/120/240 fps, sans ré-encodage). Le fichier `_tiktok.mp4` est **ralenti**. Je n'ai pas mesuré son effet sur la qualité côté TikTok.
+- **Avertissements** : projet non affilié à Riot Games, NVIDIA ni Visual Enhancer ; export hors ligne uniquement (Vanguard) ; ce dépôt ne redistribue ni le moteur ni ffmpeg.

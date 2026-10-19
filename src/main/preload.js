@@ -15,6 +15,8 @@ contextBridge.exposeInMainWorld('api', {
   pickFfmpeg: invoke('ffmpeg:pick'),
   pickFiles: invoke('files:pick'),
   pickOutput: invoke('output:pick'),
+  clipInfo: invoke('clip:info'),
+  preview: invoke('preview:run'),
   start: invoke('jobs:start'),
   cancel: invoke('jobs:cancel'),
   openFolder: invoke('shell:openFolder'),

@@ -2,22 +2,47 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const [cmd, input, ...rest] = process.argv.slice(2);
-const flag = (n) => rest[rest.indexOf(n) + 1];
+const flag = (n) => (rest.includes(n) ? rest[rest.indexOf(n) + 1] : undefined);
+const has = (n) => rest.includes(n);
+const out = flag('-o');
+const fail = (message, code = 2) => {
+  console.log(JSON.stringify({ ok: false, error: message }));
+  process.exit(code);
+};
 
+if (flag('--preset')) {
+  let preset;
+  try {
+    preset = JSON.parse(fs.readFileSync(flag('--preset'), 'utf8'));
+  } catch {
+    fail('Preset illisible');
+  }
+  if (preset.format !== 'dlss5-visual-enhancer-settings-preset') fail('Format de preset invalide');
+  if (preset.schema_version > Number(process.env.FAKE_MAX_SCHEMA || 38)) fail(`schema_version ${preset.schema_version} non pris en charge`);
+  if (process.env.FAKE_PRESET_LOG) fs.appendFileSync(process.env.FAKE_PRESET_LOG, JSON.stringify(preset.settings) + '\n');
+}
+if (has('--dry-run')) {
+  console.log(JSON.stringify({ ok: true, dry_run: true, total: 1, items: [{ input_path: input, stages: ['neural_model', 'export'] }] }));
+  process.exit(0);
+}
 if (input && input.includes('fail')) {
   console.error('Error: fichier illisible');
-  process.exit(2);
+  console.log(JSON.stringify({ ok: false, items: [{ state: 'failed', error: 'fichier illisible' }] }));
+  process.exit(1);
 }
+
+const isImage = /\.(png|jpe?g)$/i.test(input);
+const target = isImage ? out : path.join(out, `${path.parse(input).name}_Neural_Rendering.mp4`);
 let p = 0;
 const timer = setInterval(() => {
   p += 25;
   process.stderr.write(`Rendering ${p}%\r`);
   if (p >= 100) {
     clearInterval(timer);
-    const out = path.join(flag('-o'), `${path.parse(input).name}_Neural_Rendering.mp4`);
-    fs.mkdirSync(flag('-o'), { recursive: true });
-    fs.writeFileSync(out, input); // le contenu rappelle l'entrée : le faux ffmpeg s'en sert pour deviner les fps
-    console.log(JSON.stringify({ output: out, style: flag('--style') }));
+    if (fs.existsSync(target)) fail('Le fichier existe déjà', 1);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, isImage ? 'png-result' : input); // le contenu rappelle l'entrée : le faux ffmpeg y lit les fps
+    console.log(JSON.stringify({ ok: true, items: [{ input_path: input, output_path: target, state: 'complete' }] }));
   }
-}, 20);
+}, Number(process.env.FAKE_STEP_MS || 20));
 process.on('SIGTERM', () => process.exit(143));

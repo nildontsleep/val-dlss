@@ -58,7 +58,8 @@ test('fps non géré : le rendu est conservé tel quel', async () => {
   const { root, workDir } = setup('clip_144fps');
   const res = await finish({ ffmpeg: process.execPath, prefix, workDir, finalDir: root, stem: 'clip' });
   assert.equal(res.ok, false);
-  assert.match(res.error, /60, 120 ou 240/);
+  assert.equal(res.code, 'fps_unsupported');
+  assert.equal(res.params.fps, 144);
   assert.equal(res.output, path.join(root, 'clip_Neural_Rendering.mp4'));
   assert.ok(fs.existsSync(res.output));
   assert.ok(!fs.existsSync(workDir));
@@ -70,7 +71,8 @@ test('échec de ffmpeg : message remonté et rendu conservé', async () => {
   const res = await finish({ ffmpeg: process.execPath, prefix, workDir, finalDir: root, stem: 'clip' });
   delete process.env.FAKE_FFMPEG_FAIL;
   assert.equal(res.ok, false);
-  assert.match(res.error, /pas assez de place/);
+  assert.equal(res.code, 'ffmpeg_failed');
+  assert.match(res.params.detail, /pas assez de place/);
   assert.ok(fs.existsSync(path.join(root, 'clip_Neural_Rendering.mp4')));
   assert.ok(!fs.existsSync(path.join(root, 'clip_tiktok.mp4')));
 });

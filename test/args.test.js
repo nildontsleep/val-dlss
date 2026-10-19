@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
-const { buildJobs, sanitizeOptions } = require('../src/main/args');
+const { buildJobs, sanitizeOptions, sanitizePresets } = require('../src/main/args');
 
 const out = path.join('out');
 
@@ -32,7 +32,31 @@ test('les fichiers qui ne sont pas des vidéos sont ignorés', () => {
   assert.equal(buildJobs({ files: ['notes.txt', 'photo.png', 'a.mp4'], options: {}, outputDir: out }).length, 1);
 });
 
+test('le preset et la qualité choisie sont passés à la CLI', () => {
+  const [job] = buildJobs({ files: ['a.mp4'], options: { quality: 'max', tiktok: false }, outputDir: out, presetPath: 'p.json' });
+  assert.equal(job.args[job.args.indexOf('--quality') + 1], 'max');
+  assert.deepEqual(job.args.slice(-2), ['--preset', 'p.json']);
+});
+
 test('les options sont bornées', () => {
-  assert.deepEqual(sanitizeOptions({ style: 9, strength: 99, compare: 'oui', tiktok: false }), { style: 2, strength: 2, compare: false, tiktok: false });
-  assert.deepEqual(sanitizeOptions(), { style: 2, strength: 1, compare: false, tiktok: true });
+  const o = sanitizeOptions({ style: 9, strength: 99, compare: 'oui', tiktok: false, tone: -3, skin: 7, passes: 99, autoMask: 'x', quality: 'rm -rf' });
+  assert.deepEqual(o, { style: 2, strength: 2, compare: false, tiktok: false, tone: 0, structure: 1, skin: 1, passes: 3, autoMask: false, quality: 'best' });
+  assert.deepEqual(sanitizeOptions(), { style: 2, strength: 1, compare: false, tiktok: true, tone: 1, structure: 1, skin: 1, passes: 1, autoMask: false, quality: 'best' });
+});
+
+test('les presets de l\'app sont nettoyés : noms, doublons, valeurs', () => {
+  const list = sanitizePresets([
+    { id: 'a', name: '  Moins clair  ', values: { tone: 0.5, passes: 99, tiktok: false } },
+    { id: 'a', name: 'doublon', values: {} },
+    { id: 'bad id!', name: 'x', values: {} },
+    { id: 'b', name: '', values: {} },
+    { id: 'c', name: 'x'.repeat(80), values: { quality: 'max' } },
+  ]);
+  assert.deepEqual(list.map((p) => p.id), ['a', 'c']);
+  assert.equal(list[0].name, 'Moins clair');
+  assert.equal(list[0].values.tone, 0.5);
+  assert.equal(list[0].values.passes, 3);
+  assert.ok(!('tiktok' in list[0].values));
+  assert.equal(list[1].name.length, 40);
+  assert.deepEqual(sanitizePresets('nope'), []);
 });

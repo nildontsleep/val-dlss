@@ -24,15 +24,18 @@ function scaleFor(fps) {
 
 function run(exe, args, track) {
   return new Promise((resolve) => {
+    let stdout = '';
     let stderr = '';
     const child = spawn(exe, args, { windowsHide: true });
     if (track) track(child);
-    child.stdout.on('data', () => {});
+    child.stdout.on('data', (d) => {
+      if (stdout.length < 200000) stdout += d;
+    });
     child.stderr.on('data', (d) => {
       if (stderr.length < 20000) stderr += d;
     });
-    child.on('error', (e) => resolve({ code: -1, stderr: e.message }));
-    child.on('close', (code) => resolve({ code, stderr }));
+    child.on('error', (e) => resolve({ code: -1, stdout, stderr: e.message }));
+    child.on('close', (code) => resolve({ code, stdout, stderr }));
   });
 }
 
@@ -68,7 +71,7 @@ async function finish({ ffmpeg, prefix = [], workDir, finalDir, stem, track, isC
   }
   if (!rendered) {
     cleanup();
-    return { ok: false, error: 'Aucun rendu trouvé' };
+    return { ok: false, code: 'no_render' };
   }
   const keep = () => {
     const { name, ext } = path.parse(rendered);
@@ -81,10 +84,9 @@ async function finish({ ffmpeg, prefix = [], workDir, finalDir, stem, track, isC
   const fps = parseFps((await run(ffmpeg, [...prefix, '-hide_banner', '-i', rendered], track)).stderr);
   const scale = scaleFor(fps);
   if (!scale) {
-    const error = fps
-      ? `${fps} fps : la méthode gère 60, 120 ou 240 fps. Rendu conservé tel quel.`
-      : 'fps introuvable. Rendu conservé tel quel.';
-    return { ok: false, error, output: keep() };
+    return fps
+      ? { ok: false, code: 'fps_unsupported', params: { fps }, output: keep() }
+      : { ok: false, code: 'fps_unknown', output: keep() };
   }
   if (isCancelled()) return { ok: false, cancelled: true, output: keep() };
 
@@ -93,7 +95,7 @@ async function finish({ ffmpeg, prefix = [], workDir, finalDir, stem, track, isC
   if (r.code !== 0 || !fs.existsSync(output)) {
     fs.rmSync(output, { force: true });
     if (isCancelled()) return { ok: false, cancelled: true, output: keep() };
-    return { ok: false, error: `${lastLine(r.stderr) || 'ffmpeg a échoué'}. Rendu conservé tel quel.`, output: keep() };
+    return { ok: false, code: 'ffmpeg_failed', params: { detail: lastLine(r.stderr) }, output: keep() };
   }
   cleanup();
   return { ok: true, output, fps, scale };
@@ -135,4 +137,4 @@ async function checkFfmpeg(exe, prefix = []) {
   return (await run(exe, [...prefix, '-version'])).code === 0;
 }
 
-module.exports = { parseFps, scaleFor, finish, findFfmpegIn, findFfmpegOnPath, checkFfmpeg };
+module.exports = { parseFps, scaleFor, finish, findFfmpegIn, findFfmpegOnPath, checkFfmpeg, run, lastLine };

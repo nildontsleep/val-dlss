@@ -25,7 +25,7 @@ test('un job réussit, remonte sa progression et son résultat JSON', async () =
   assert.ok(mine.some((e) => e.progress === 50));
   const last = mine.at(-1);
   assert.equal(last.state, 'done');
-  assert.equal(last.result.style, '2');
+  assert.match(last.result.output, /a_Neural_Rendering\.mp4$/);
   assert.ok(fs.existsSync(last.result.output));
 });
 

@@ -2,17 +2,32 @@
   'use strict';
 
   const $ = (s) => document.querySelector(s);
+  const t = (k, p) => window.I18N.t(k, p);
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const D = (x) => (reduce ? 0 : x);
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
   const basename = (p) => String(p || '').split(/[\\/]/).filter(Boolean).pop() || '';
-  const OPTION_KEYS = ['style', 'strength', 'compare', 'tiktok'];
+  const fmtTime = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
-  const S = { settings: {}, exts: new Set(), inputs: [], items: [], view: 'inputs', running: false };
+  const OPTION_KEYS = ['style', 'strength', 'compare', 'tiktok', 'tone', 'structure', 'skin', 'passes', 'autoMask', 'quality'];
+  const PRESET_KEYS = ['style', 'strength', 'tone', 'structure', 'skin', 'passes', 'autoMask', 'quality'];
+  const DEFAULTS = { style: 2, strength: 1, tone: 1, structure: 1, skin: 1, passes: 1, autoMask: false, quality: 'best' };
+  const ADV_KEYS = ['tone', 'structure', 'skin', 'passes', 'autoMask', 'quality'];
+
+  const S = {
+    settings: {},
+    exts: new Set(),
+    inputs: [],
+    items: [],
+    view: 'inputs',
+    running: false,
+    defaultOut: '',
+    advOpen: false,
+    pv: { open: false, idx: 0, time: 0, duration: 0, token: 0, timer: null },
+  };
   const cards = new Map();
   const early = [];
 
-  const STATE_LABEL = { pending: 'En attente', running: 'En cours', done: 'Terminé', error: 'Échec', cancelled: 'Annulé' };
   const ICON =
     '<span class="job-ico"><svg viewBox="0 0 24 24"><circle class="base" cx="12" cy="12" r="9"/><circle class="arc" cx="12" cy="12" r="9"/>' +
     '<path class="tick" d="m8 12.5 3 3 5-6"/><path class="bang" d="M12 7.5v5.5M12 16.5h.01"/></svg></span>';
@@ -21,15 +36,21 @@
 
   /* ---------- réglages ---------- */
   let saveTimer;
+  let pending = {};
   function save(patch) {
     Object.assign(S.settings, patch);
+    Object.assign(pending, patch);
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
-      const out = {};
-      for (const k of OPTION_KEYS) out[k] = S.settings[k];
-      window.api.saveSettings(out);
+      const p = pending;
+      pending = {};
+      window.api.saveSettings(p);
     }, 150);
   }
+
+  const currentValues = () => Object.fromEntries(PRESET_KEYS.map((k) => [k, S.settings[k]]));
+  const sameValues = (a, b) => PRESET_KEYS.every((k) => (typeof a[k] === 'number' ? Math.abs(a[k] - b[k]) < 1e-6 : a[k] === b[k]));
+  const allPresets = () => [{ id: 'default', name: t('adv.default'), values: DEFAULTS }, ...(S.settings.presets || [])];
 
   function paintRange(el) {
     el.style.setProperty('--p', `${((el.value - el.min) / (el.max - el.min)) * 100}%`);
@@ -38,31 +59,90 @@
 
   function setSeg(sel, value, animate) {
     const seg = $(sel);
-    let target = seg.querySelector('button');
-    for (const b of seg.querySelectorAll('button')) {
-      const on = Number(b.dataset.v) === Number(value);
+    const btns = [...seg.querySelectorAll('button')];
+    let target = btns[0];
+    for (const b of btns) {
+      const on = String(b.dataset.v) === String(value);
       b.classList.toggle('on', on);
       b.setAttribute('aria-checked', String(on));
       if (on) target = b;
     }
-    gsap.to(seg.querySelector('.seg-pill'), { x: target.offsetLeft - 3, duration: animate ? D(0.35) : 0, ease: 'back.out(1.6)' });
+    gsap.to(seg.querySelector('.seg-pill'), { x: target.offsetLeft - 3, width: target.offsetWidth, duration: animate ? D(0.35) : 0, ease: 'back.out(1.6)' });
+  }
+
+  function refreshSegs() {
+    setSeg('#style', S.settings.style, false);
+    setSeg('#passes', S.settings.passes, false);
+    setSeg('#quality', S.settings.quality, false);
+    setSeg('#lang', window.I18N.lang, false);
   }
 
   function syncStatus() {
     const ok = !!S.settings.enginePath;
     $('#status').classList.toggle('ok', ok);
-    $('#status span').textContent = ok ? 'Moteur prêt' : 'Moteur manquant';
+    $('#status span').textContent = t(ok ? 'status.ready' : 'status.missing');
+  }
+
+  function syncPresetUI() {
+    const sel = $('#preset-sel');
+    const active = S.settings.activePreset;
+    sel.innerHTML = '';
+    for (const p of allPresets()) sel.add(new Option(p.name, p.id));
+    if (!allPresets().some((p) => p.id === active)) sel.add(new Option(t('adv.custom'), ''));
+    sel.value = allPresets().some((p) => p.id === active) ? active : '';
+    $('#preset-del').hidden = !(S.settings.presets || []).some((p) => p.id === active);
+  }
+
+  function syncAdvIndicator() {
+    $('#btn-adv').classList.toggle('mod', ADV_KEYS.some((k) => S.settings[k] !== DEFAULTS[k]));
   }
 
   function sync() {
     const s = S.settings;
     setSeg('#style', s.style, false);
-    $('#strength').value = s.strength;
-    paintRange($('#strength'));
+    setSeg('#passes', s.passes, false);
+    setSeg('#quality', s.quality, false);
+    for (const id of ['strength', 'tone', 'structure', 'skin']) {
+      $(`#${id}`).value = s[id];
+      paintRange($(`#${id}`));
+    }
     $('#compare').checked = !!s.compare;
     $('#tiktok').checked = s.tiktok !== false;
-    $('#out-name').textContent = basename(s.outputDir || S.defaultOut) || 'Sortie';
+    $('#automask').checked = !!s.autoMask;
+    $('#out-name').textContent = basename(s.outputDir || S.defaultOut) || 'Valorant DLSS';
     syncStatus();
+    syncPresetUI();
+    syncAdvIndicator();
+  }
+
+  // Appelée après chaque changement de réglage de rendu.
+  function onParamChange() {
+    const match = allPresets().find((p) => sameValues(p.values, currentValues()));
+    save({ activePreset: match ? match.id : '' });
+    syncPresetUI();
+    syncAdvIndicator();
+    if (S.pv.open) schedulePreview(500);
+  }
+
+  function applyValues(values) {
+    save(values);
+    sync();
+    refreshSegs();
+    syncAdvIndicator();
+    if (S.pv.open) schedulePreview(300);
+  }
+
+  /* ---------- langue ---------- */
+  function setLang(lang, persist) {
+    window.I18N.lang = lang;
+    window.I18N.apply();
+    $('#drop-title').textContent = t($('#drop').classList.contains('compact') ? 'drop.more' : 'drop.title');
+    syncStatus();
+    syncPresetUI();
+    setRunButton();
+    for (const it of S.items) paintCard(it);
+    if (persist) save({ lang: window.I18N.lang });
+    requestAnimationFrame(refreshSegs);
   }
 
   /* ---------- infobulles et toast ---------- */
@@ -73,9 +153,9 @@
     tip.textContent = el.dataset.tip;
     gsap.set(tip, { visibility: 'visible' });
     const r = el.getBoundingClientRect();
-    const t = tip.getBoundingClientRect();
-    const x = clamp(r.left + r.width / 2 - t.width / 2, 8, innerWidth - t.width - 8);
-    let y = r.top - t.height - 10;
+    const b = tip.getBoundingClientRect();
+    const x = clamp(r.left + r.width / 2 - b.width / 2, 8, innerWidth - b.width - 8);
+    let y = r.top - b.height - 10;
     if (y < 8) y = r.bottom + 10;
     gsap.fromTo(tip, { x, y: y + 5, opacity: 0 }, { x, y, opacity: 1, duration: D(0.2), ease: 'power2.out', overwrite: true });
   }
@@ -115,7 +195,7 @@
       .timeline()
       .set(el, { visibility: 'visible' })
       .fromTo(el, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: D(0.3), ease: 'power3.out' })
-      .to(el, { opacity: 0, y: 6, duration: D(0.3), delay: 2.4 })
+      .to(el, { opacity: 0, y: 6, duration: D(0.3), delay: 2.8 })
       .set(el, { visibility: 'hidden' });
   }
 
@@ -125,8 +205,8 @@
   function openModal(id) {
     const m = $(id);
     if (id === '#modal-info') {
-      $('#p-engine').textContent = S.settings.enginePath || 'Introuvable';
-      $('#p-ffmpeg').textContent = S.settings.ffmpegPath || 'Introuvable';
+      $('#p-engine').textContent = S.settings.enginePath || t('notfound');
+      $('#p-ffmpeg').textContent = S.settings.ffmpegPath || t('notfound');
     }
     m.hidden = false;
     gsap.fromTo(m, { opacity: 0 }, { opacity: 1, duration: D(0.2) });
@@ -141,34 +221,208 @@
   async function pickEngine() {
     const r = await window.api.pickEngine();
     if (r.canceled) return;
-    if (!r.ok) return toast('VE_CLI.exe introuvable dans ce dossier');
+    if (!r.ok) return toast(t('toast.engineBad'));
     S.settings.enginePath = r.path;
     syncStatus();
     $('#p-engine').textContent = r.path;
     if (!$('#modal-engine').hidden) closeModal('#modal-engine');
-    toast('Moteur trouvé');
+    toast(t('toast.engineOk'));
   }
 
   async function pickFfmpeg() {
     const r = await window.api.pickFfmpeg();
     if (r.canceled) return;
-    if (!r.ok) return toast('Ce ffmpeg.exe ne démarre pas');
+    if (!r.ok) return toast(t('toast.ffmpegBad'));
     S.settings.ffmpegPath = r.path;
     $('#p-ffmpeg').textContent = r.path;
     if (!$('#modal-ffmpeg').hidden) closeModal('#modal-ffmpeg');
-    toast('ffmpeg prêt');
+    toast(t('toast.ffmpegOk'));
+  }
+
+  /* ---------- réglages avancés et presets ---------- */
+  function toggleAdv(force) {
+    S.advOpen = force === undefined ? !S.advOpen : force;
+    const el = $('#adv');
+    $('#btn-adv').classList.toggle('on', S.advOpen);
+    el.setAttribute('aria-hidden', String(!S.advOpen));
+    el.inert = !S.advOpen;
+    if (S.advOpen) requestAnimationFrame(refreshSegs);
+    gsap.to(el, S.advOpen
+      ? { height: 'auto', opacity: 1, duration: D(0.4), ease: 'power3.out' }
+      : { height: 0, opacity: 0, duration: D(0.3), ease: 'power2.inOut' });
+    save({ advancedOpen: S.advOpen });
+  }
+
+  function savePreset(name) {
+    const clean = name.replace(/[\u0000-\u001f]/g, '').trim().slice(0, 40);
+    if (!clean) return false;
+    const list = [...(S.settings.presets || [])];
+    const existing = list.find((p) => p.name.toLowerCase() === clean.toLowerCase());
+    let id;
+    if (existing) {
+      existing.values = currentValues();
+      id = existing.id;
+    } else {
+      if (list.length >= 30) return false;
+      id = `p${Date.now().toString(36)}`;
+      list.push({ id, name: clean, values: currentValues() });
+    }
+    save({ presets: list, activePreset: id });
+    syncPresetUI();
+    toast(t('toast.saved'));
+    return true;
+  }
+
+  function deletePreset() {
+    const id = S.settings.activePreset;
+    save({ presets: (S.settings.presets || []).filter((p) => p.id !== id), activePreset: '' });
+    onParamChange();
+    toast(t('toast.deleted'));
+  }
+
+  /* ---------- aperçu d'une frame ---------- */
+  function setSplit(pct) {
+    const p = clamp(pct, 0, 100);
+    $('#cmp-after').style.clipPath = `inset(0 0 0 ${p}%)`;
+    $('#cmp-handle').style.left = `${p}%`;
+    $('#cmp-handle').setAttribute('aria-valuenow', String(Math.round(p)));
+    S.pv.split = p;
+  }
+
+  function showLoader(on) {
+    gsap.to('#cmp-load', { autoAlpha: on ? 1 : 0, duration: D(0.2), overwrite: true });
+  }
+
+  function showPreviewError(text) {
+    const el = $('#cmp-err');
+    el.hidden = !text;
+    el.textContent = text || '';
+  }
+
+  function schedulePreview(delay = 400) {
+    clearTimeout(S.pv.timer);
+    S.pv.timer = setTimeout(refreshPreview, delay);
+  }
+
+  async function refreshPreview() {
+    const clip = S.inputs[S.pv.idx];
+    if (!clip) return;
+    const token = ++S.pv.token;
+    showLoader(true);
+    const options = {};
+    for (const k of OPTION_KEYS) options[k] = S.settings[k];
+    const r = await window.api.preview({ file: clip.path, time: S.pv.time, options });
+    if (token !== S.pv.token || !S.pv.open) return;
+    if (r.cancelled) return;
+    showLoader(false);
+    if (r.ok) {
+      showPreviewError('');
+      $('#cmp-before').src = r.before;
+      $('#cmp-after').src = r.after;
+      gsap.fromTo('#cmp-after', { opacity: 0.35 }, { opacity: 1, duration: D(0.35) });
+    } else if (r.error === 'ffmpeg') {
+      closePreview();
+      openModal('#modal-ffmpeg');
+    } else if (r.error === 'engine') {
+      closePreview();
+      openModal('#modal-engine');
+    } else if (r.error === 'preset') {
+      showPreviewError(t('toast.preset', { detail: r.detail || '' }));
+    } else if (r.error !== 'busy') {
+      showPreviewError(t(`err.${r.error === 'render' ? 'render' : 'extract'}`, { detail: r.detail || '' }));
+    }
+  }
+
+  async function loadPreviewClip(idx) {
+    S.pv.idx = (idx + S.inputs.length) % S.inputs.length;
+    const clip = S.inputs[S.pv.idx];
+    $('#pv-name').textContent = clip.name;
+    $('#pv-prev').hidden = $('#pv-next').hidden = S.inputs.length < 2;
+    showPreviewError('');
+    const info = await window.api.clipInfo(clip.path);
+    if (!S.pv.open) return;
+    const duration = info.ok ? info.duration : 0;
+    S.pv.duration = duration;
+    S.pv.time = duration * 0.4;
+    const slider = $('#pv-slider');
+    slider.max = Math.max(duration, 0.1);
+    slider.value = S.pv.time;
+    slider.dispatchEvent(new Event('input'));
+    $('#pv-d').textContent = fmtTime(duration);
+    refreshPreview();
+  }
+
+  function openPreview() {
+    if (S.running) return toast(t('toast.busy'));
+    if (!S.inputs.length) {
+      shake($('#drop'));
+      return toast(t('preview.noclip'));
+    }
+    if (!S.settings.ffmpegPath) return openModal('#modal-ffmpeg');
+    if (!S.settings.enginePath) return openModal('#modal-engine');
+    S.pv.open = true;
+    document.body.classList.add('previewing');
+    $('#preview').hidden = false;
+    $('#btn-preview').classList.add('on');
+    $('#cmp-before').removeAttribute('src');
+    $('#cmp-after').removeAttribute('src');
+    setSplit(50);
+    gsap.fromTo('#preview', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: D(0.45), ease: 'power3.out' });
+    loadPreviewClip(0);
+  }
+
+  function closePreview() {
+    if (!S.pv.open) return;
+    S.pv.open = false;
+    S.pv.token++;
+    clearTimeout(S.pv.timer);
+    document.body.classList.remove('previewing');
+    $('#preview').hidden = true;
+    $('#btn-preview').classList.remove('on');
+    showLoader(false);
+  }
+
+  function bindPreview() {
+    const cmp = $('#cmp');
+    let dragging = false;
+    const move = (e) => {
+      const r = cmp.getBoundingClientRect();
+      setSplit(((e.clientX - r.left) / r.width) * 100);
+    };
+    cmp.addEventListener('pointerdown', (e) => {
+      dragging = true;
+      cmp.setPointerCapture(e.pointerId);
+      move(e);
+    });
+    cmp.addEventListener('pointermove', (e) => dragging && move(e));
+    cmp.addEventListener('pointerup', () => (dragging = false));
+    $('#cmp-handle').addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') setSplit((S.pv.split ?? 50) - 3);
+      else if (e.key === 'ArrowRight') setSplit((S.pv.split ?? 50) + 3);
+    });
+    $('#pv-slider').addEventListener('input', (e) => {
+      S.pv.time = Number(e.target.value);
+      e.target.style.setProperty('--p', `${(S.pv.time / Math.max(Number(e.target.max), 0.1)) * 100}%`);
+      $('#pv-t').textContent = fmtTime(S.pv.time);
+    });
+    $('#pv-slider').addEventListener('change', () => schedulePreview(150));
+    $('#pv-back').addEventListener('click', closePreview);
+    $('#pv-prev').addEventListener('click', () => loadPreviewClip(S.pv.idx - 1));
+    $('#pv-next').addEventListener('click', () => loadPreviewClip(S.pv.idx + 1));
   }
 
   /* ---------- file d'attente ---------- */
   function setCompact(on) {
     const d = $('#drop');
+    const title = $('#drop-title');
+    title.dataset.i18n = on ? 'drop.more' : 'drop.title';
+    title.textContent = t(title.dataset.i18n);
     if (d.classList.contains('compact') === on) return;
     const h0 = d.offsetHeight;
     d.classList.toggle('compact', on);
     const h1 = d.offsetHeight;
     if (on) gsap.fromTo(d, { height: h0 }, { height: h1, duration: D(0.5), ease: 'power3.inOut', clearProps: 'height' });
     else gsap.fromTo(d, { opacity: 0, scale: 0.98 }, { opacity: 1, scale: 1, duration: D(0.45), ease: 'power3.out', clearProps: 'all' });
-    $('#drop .drop-title').textContent = on ? 'Ajouter d’autres clips' : 'Dépose un clip';
   }
 
   function makeCard(it) {
@@ -178,13 +432,14 @@
     li.innerHTML =
       `${ICON}<div class="job-title"><span class="job-name"></span><span class="job-tag"></span></div>` +
       '<span class="job-state"></span>' +
-      `<button class="icon sm open" data-tip="Ouvrir le dossier" aria-label="Ouvrir le dossier">${FOLDER_SVG}</button>` +
-      `<button class="icon sm rm" data-tip="Retirer" aria-label="Retirer">${X_SVG}</button>` +
+      `<button class="icon sm open" data-i18n-tip="tip.open" data-i18n-aria="tip.open">${FOLDER_SVG}</button>` +
+      `<button class="icon sm rm" data-i18n-tip="tip.remove" data-i18n-aria="tip.remove">${X_SVG}</button>` +
       '<p class="job-msg"></p><div class="track"><i></i></div>';
     li.querySelector('.job-name').textContent = it.name;
     li.querySelector('.job-tag').textContent = it.tag || '';
     li.querySelector('.open').addEventListener('click', () => window.api.openFolder(it.outDir));
     li.querySelector('.rm').addEventListener('click', () => removeItem(it.key));
+    window.I18N.apply(li);
     return li;
   }
 
@@ -208,6 +463,10 @@
     S.view = 'inputs';
     S.items = S.inputs.map((f) => ({ key: f.path, name: f.name, tag: '', state: 'pending', progress: 0 }));
     renderQueue();
+    if (S.pv.open) {
+      if (!S.inputs.length) closePreview();
+      else loadPreviewClip(clamp(S.pv.idx, 0, S.inputs.length - 1));
+    }
   }
 
   function removeItem(key) {
@@ -222,20 +481,25 @@
     if (!S.items.length) buildInputs();
   }
 
+  function cardMessage(it) {
+    if (it.code) return t(`err.${it.code}`, it.params || {});
+    return it.message || '';
+  }
+
   function paintCard(it) {
     const li = cards.get(it.key);
     if (!li) return;
     const was = li.dataset.state;
     li.dataset.state = it.state;
-    let label = STATE_LABEL[it.state];
+    let label = t(`state.${it.state}`);
     if (it.state === 'running') {
-      if (it.phase === 'finish') label = 'Finition TikTok';
+      if (it.phase === 'finish') label = t('state.finish');
       else if (it.progress != null) label += ` · ${Math.round(it.progress)}%`;
     }
     li.querySelector('.job-state').textContent = label;
     const msg = li.querySelector('.job-msg');
-    msg.textContent = it.message || '';
-    msg.title = it.message || '';
+    msg.textContent = cardMessage(it);
+    msg.title = msg.textContent;
 
     const bar = li.querySelector('.track i');
     gsap.killTweensOf(bar);
@@ -261,6 +525,8 @@
     it.phase = ev.phase || null;
     if (ev.state === 'running') it.progress = ev.progress ?? null;
     if (ev.state === 'done') it.progress = 100;
+    it.code = ev.code || null;
+    it.params = ev.params || null;
     it.message = ev.message || '';
     paintCard(it);
   }
@@ -280,14 +546,14 @@
       S.inputs.push({ path: p, name: basename(p) });
       added++;
     }
-    if (skipped) toast(skipped === 1 ? '1 fichier ignoré (ce n’est pas un clip)' : `${skipped} fichiers ignorés`);
+    if (skipped) toast(skipped === 1 ? t('toast.ignored1') : t('toast.ignoredN', { n: skipped }));
     if (added || S.view === 'jobs') buildInputs();
   }
 
   /* ---------- lancement ---------- */
   function setRunButton() {
     const b = $('#btn-run');
-    b.textContent = S.running ? 'Annuler' : 'Lancer';
+    b.textContent = t(S.running ? 'cancel' : 'run');
     b.classList.toggle('stop', S.running);
     document.body.classList.toggle('running', S.running);
     $('#btn-clear').hidden = S.running || !S.items.length;
@@ -298,7 +564,7 @@
     if (S.running) return window.api.cancel();
     if (!S.inputs.length) {
       shake($('#drop'));
-      return toast('Ajoute au moins un clip');
+      return toast(t('toast.addClip'));
     }
     const options = {};
     for (const k of OPTION_KEYS) options[k] = S.settings[k];
@@ -306,10 +572,12 @@
     if (!res.ok) {
       if (res.error === 'engine') openModal('#modal-engine');
       else if (res.error === 'ffmpeg') openModal('#modal-ffmpeg');
-      else if (res.error === 'busy') toast('Un rendu est déjà en cours');
-      else toast('Aucun clip valide');
+      else if (res.error === 'busy') toast(t('toast.busy'));
+      else if (res.error === 'preset') toast(t('toast.preset', { detail: res.detail || '' }));
+      else toast(t('toast.noValid'));
       return;
     }
+    closePreview();
     S.view = 'jobs';
     S.items = res.jobs.map((j) => ({
       key: j.id,
@@ -331,24 +599,64 @@
   /* ---------- branchements ---------- */
   function bind() {
     bindTips();
+    bindPreview();
 
-    $('#strength').addEventListener('input', (e) => {
-      paintRange(e.target);
-      save({ strength: Number(e.target.value) });
+    for (const id of ['strength', 'tone', 'structure', 'skin']) {
+      const el = $(`#${id}`);
+      el.addEventListener('input', () => {
+        paintRange(el);
+        save({ [id]: Number(el.value) });
+        onParamChange();
+      });
+    }
+    $('#automask').addEventListener('change', (e) => {
+      save({ autoMask: e.target.checked });
+      onParamChange();
     });
     $('#compare').addEventListener('change', (e) => save({ compare: e.target.checked }));
     $('#tiktok').addEventListener('change', (e) => {
       save({ tiktok: e.target.checked });
       if (e.target.checked && !S.settings.ffmpegPath) openModal('#modal-ffmpeg');
     });
-    $('#style').addEventListener('click', (e) => {
+    for (const [sel, key, cast] of [['#style', 'style', Number], ['#passes', 'passes', Number], ['#quality', 'quality', String]]) {
+      $(sel).addEventListener('click', (e) => {
+        const b = e.target.closest('button[data-v]');
+        if (!b) return;
+        save({ [key]: cast(b.dataset.v) });
+        setSeg(sel, b.dataset.v, true);
+        onParamChange();
+      });
+    }
+    $('#lang').addEventListener('click', (e) => {
       const b = e.target.closest('button[data-v]');
-      if (!b) return;
-      save({ style: Number(b.dataset.v) });
-      setSeg('#style', b.dataset.v, true);
+      if (b) setLang(b.dataset.v, true);
     });
 
+    $('#preset-sel').addEventListener('change', (e) => {
+      const p = allPresets().find((x) => x.id === e.target.value);
+      if (p) {
+        save({ activePreset: p.id });
+        applyValues(p.values);
+        syncPresetUI();
+      }
+    });
+    $('#preset-save').addEventListener('click', () => {
+      const form = $('#preset-form');
+      form.hidden = !form.hidden;
+      if (!form.hidden) $('#preset-name').focus();
+    });
+    $('#preset-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (savePreset($('#preset-name').value)) {
+        $('#preset-name').value = '';
+        $('#preset-form').hidden = true;
+      }
+    });
+    $('#preset-del').addEventListener('click', deletePreset);
+
     $('#btn-run').addEventListener('click', run);
+    $('#btn-adv').addEventListener('click', () => toggleAdv());
+    $('#btn-preview').addEventListener('click', () => (S.pv.open ? closePreview() : openPreview()));
     $('#btn-info').addEventListener('click', () => openModal('#modal-info'));
     $('#status').addEventListener('click', () => openModal(S.settings.enginePath ? '#modal-info' : '#modal-engine'));
     $('#m-close').addEventListener('click', () => closeModal('#modal-info'));
@@ -410,6 +718,7 @@
       if (e.key === 'Escape') {
         const m = openModals();
         if (m.length) closeModal(m[0]);
+        else if (S.pv.open) closePreview();
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'o') {
         e.preventDefault();
         pickFiles();
@@ -424,9 +733,9 @@
     window.api.onFinished(({ cancelled }) => {
       S.running = false;
       setRunButton();
-      if (cancelled) toast('Annulé');
-      else if (S.items.length && S.items.every((i) => i.state === 'done')) toast('Terminé');
-      else if (S.items.some((i) => i.state === 'error')) toast('Certains exports ont échoué');
+      if (cancelled) toast(t('toast.cancelled'));
+      else if (S.items.length && S.items.every((i) => i.state === 'done')) toast(t('toast.done'));
+      else if (S.items.some((i) => i.state === 'error')) toast(t('toast.someFailed'));
     });
   }
 
@@ -436,7 +745,7 @@
     const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
     tl.from('.top', { y: -16, opacity: 0, duration: D(0.6) })
       .from('#drop', { y: 22, opacity: 0, scale: 0.98, duration: D(0.7) }, '-=0.35')
-      .from('.dock', { y: 34, opacity: 0, duration: D(0.6) }, '-=0.45');
+      .from('.dockwrap', { y: 34, opacity: 0, duration: D(0.6) }, '-=0.45');
     if (reduce) return;
     document.querySelectorAll('.ring').forEach((r, i) => {
       gsap.fromTo(r, { scale: 0.6, opacity: 0.35 }, { scale: 2.6, opacity: 0, duration: 4, repeat: -1, ease: 'power1.out', delay: i * 1.3 });
@@ -450,9 +759,16 @@
       S.settings = b.settings;
       S.defaultOut = b.defaultOutputDir;
       S.exts = new Set(b.exts);
+      window.I18N.lang = S.settings.lang;
+      window.I18N.apply();
       bind();
       sync();
+      $('#adv').inert = true;
       intro();
+      setRunButton();
+      requestAnimationFrame(refreshSegs);
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(refreshSegs);
+      if (S.settings.advancedOpen) setTimeout(() => toggleAdv(true), D(500));
       if (!S.settings.enginePath) setTimeout(() => openModal('#modal-engine'), D(800));
     } catch (err) {
       console.error(err);
