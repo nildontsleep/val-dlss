@@ -136,7 +136,7 @@
   function setLang(lang, persist) {
     window.I18N.lang = lang;
     window.I18N.apply();
-    $('#drop-title').textContent = t($('#drop').classList.contains('compact') ? 'drop.more' : 'drop.title');
+    $('#drop-title').innerHTML = t($('#drop-title').dataset.i18nHtml);
     syncStatus();
     syncPresetUI();
     setRunButton();
@@ -415,8 +415,8 @@
   function setCompact(on) {
     const d = $('#drop');
     const title = $('#drop-title');
-    title.dataset.i18n = on ? 'drop.more' : 'drop.title';
-    title.textContent = t(title.dataset.i18n);
+    title.dataset.i18nHtml = on ? 'drop.more' : 'drop.title';
+    title.innerHTML = t(title.dataset.i18nHtml);
     if (d.classList.contains('compact') === on) return;
     const h0 = d.offsetHeight;
     d.classList.toggle('compact', on);
@@ -427,7 +427,7 @@
 
   function makeCard(it) {
     const li = document.createElement('li');
-    li.className = 'job';
+    li.className = 'job spot';
     li.dataset.state = it.state;
     li.innerHTML =
       `${ICON}<div class="job-title"><span class="job-name"></span><span class="job-tag"></span></div>` +
@@ -599,6 +599,13 @@
   /* ---------- branchements ---------- */
   function bind() {
     bindTips();
+    document.addEventListener('pointermove', (e) => {
+      const card = e.target.closest && e.target.closest('.spot');
+      if (!card) return;
+      const r = card.getBoundingClientRect();
+      card.style.setProperty('--mx', `${e.clientX - r.left}px`);
+      card.style.setProperty('--my', `${e.clientY - r.top}px`);
+    });
     bindPreview();
 
     for (const id of ['strength', 'tone', 'structure', 'skin']) {
@@ -739,18 +746,50 @@
     });
   }
 
+  // Découpe un titre en mots (en gardant les <em>) pour les faire apparaître un à un, comme sur morpheen.dev.
+  function splitWords(el) {
+    const walk = (node) => {
+      for (const n of [...node.childNodes]) {
+        if (n.nodeType === 3) {
+          const frag = document.createDocumentFragment();
+          for (const part of n.textContent.split(/(\s+)/)) {
+            if (!part) continue;
+            if (/^\s+$/.test(part)) {
+              frag.append(part);
+            } else {
+              const w = document.createElement('span');
+              w.className = 'w';
+              w.style.display = 'inline-block';
+              w.textContent = part;
+              frag.append(w);
+            }
+          }
+          n.replaceWith(frag);
+        } else if (n.nodeType === 1) {
+          walk(n);
+        }
+      }
+    };
+    walk(el);
+    return el.querySelectorAll('.w');
+  }
+
   function intro() {
     gsap.set('#toast', { xPercent: -50 });
     gsap.set('#app', { autoAlpha: 1 });
-    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-    tl.from('.top', { y: -16, opacity: 0, duration: D(0.6) })
-      .from('#drop', { y: 22, opacity: 0, scale: 0.98, duration: D(0.7) }, '-=0.35')
-      .from('.dockwrap', { y: 34, opacity: 0, duration: D(0.6) }, '-=0.45');
-    if (reduce) return;
-    document.querySelectorAll('.ring').forEach((r, i) => {
-      gsap.fromTo(r, { scale: 0.6, opacity: 0.35 }, { scale: 2.6, opacity: 0, duration: 4, repeat: -1, ease: 'power1.out', delay: i * 1.3 });
+    const title = $('#drop-title');
+    const words = splitWords(title);
+    const tl = gsap.timeline({
+      defaults: { ease: 'power3.out' },
+      onComplete: () => (title.innerHTML = t(title.dataset.i18nHtml)),
     });
-    gsap.to('.drop-core', { y: -5, duration: 2.2, repeat: -1, yoyo: true, ease: 'sine.inOut' });
+    tl.from('.nav', { y: -40, opacity: 0, duration: D(0.8) })
+      .from('#drop', { y: 22, opacity: 0, scale: 0.985, duration: D(0.8) }, '-=0.45')
+      .from('.drop-core', { scale: 0.6, opacity: 0, duration: D(0.9), ease: 'back.out(1.6)' }, '<0.1')
+      .from(words, { yPercent: 60, opacity: 0, stagger: D(0.07), duration: D(0.8) }, '-=0.5')
+      .from('.drop-sub', { opacity: 0, y: 10, duration: D(0.6) }, '-=0.4')
+      .from('.dockwrap', { y: 34, opacity: 0, duration: D(0.7) }, '-=0.7');
+    if (!reduce) gsap.to('.drop-core', { y: -5, duration: 2.4, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 1.2 });
   }
 
   async function init() {

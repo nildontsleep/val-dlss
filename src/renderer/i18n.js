@@ -8,9 +8,9 @@
       'tip.status': 'Visual Enhancer engine',
       'tip.info': 'About',
       'tip.lang': 'Language',
-      'drop.title': 'Drop a clip',
+      'drop.title': 'Drop a <em>clip</em>',
       'drop.sub': 'or click to choose',
-      'drop.more': 'Add more clips',
+      'drop.more': 'Add <em>more</em> clips',
       'tip.style': 'Three renders from the engine. Turn on “Compare” to see them all.',
       'strength': 'Strength',
       'tip.strength': 'Effect strength. Lower = closer to the original clip.',
@@ -107,9 +107,9 @@
       'tip.status': 'Moteur Visual Enhancer',
       'tip.info': 'À propos',
       'tip.lang': 'Langue',
-      'drop.title': 'Dépose un clip',
+      'drop.title': 'Dépose un <em>clip</em>',
       'drop.sub': 'ou clique pour choisir',
-      'drop.more': 'Ajouter d’autres clips',
+      'drop.more': 'Ajouter <em>d’autres</em> clips',
       'tip.style': 'Trois rendus du moteur. Active « Comparer » pour les voir tous.',
       'strength': 'Intensité',
       'tip.strength': 'Force de l’effet. Plus bas = plus proche du clip d’origine.',
@@ -215,7 +215,7 @@
     for (const el of root.querySelectorAll('[data-i18n-html]')) el.innerHTML = t(el.dataset.i18nHtml);
     for (const el of root.querySelectorAll('[data-i18n-tip]')) el.dataset.tip = t(el.dataset.i18nTip);
     for (const el of root.querySelectorAll('[data-i18n-ph]')) el.placeholder = t(el.dataset.i18nPh);
-    for (const el of root.querySelectorAll('[data-i18n-aria]')) el.setAttribute('aria-label', t(el.dataset.i18nAria));
+    for (const el of root.querySelectorAll('[data-i18n-aria]')) el.setAttribute('aria-label', t(el.dataset.i18nAria).replace(/<[^>]+>/g, ''));
   }
 
   window.I18N = {
