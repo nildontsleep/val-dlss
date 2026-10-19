@@ -95,8 +95,9 @@ the right to submit it.
 
 ### Maintainer notes
 
-Releases: bump `version` in `package.json`, merge to `main`, then `git tag vX.Y.Z && git push origin vX.Y.Z`. The
-`build` workflow publishes the portable exe as a GitHub Release. Labels are defined in `.github/labels.json` and synced
+Releases: bump `version` in `package.json`, merge to `main`, then either `git tag vX.Y.Z && git push origin vX.Y.Z`, or run
+the `build` workflow from the Actions tab with `release_tag` = `vX.Y.Z`. The workflow publishes the portable exe as a
+GitHub Release. Labels are defined in `.github/labels.json` and synced
 by the `labels` workflow.
 
 ## Français
@@ -193,6 +194,7 @@ avoir le droit de la proposer.
 
 ### Notes pour le mainteneur
 
-Releases : incrémenter `version` dans `package.json`, fusionner dans `main`, puis `git tag vX.Y.Z && git push origin vX.Y.Z`.
-Le workflow `build` publie l'exe portable en Release GitHub. Les étiquettes sont définies dans `.github/labels.json` et
+Releases : incrémenter `version` dans `package.json`, fusionner dans `main`, puis soit `git tag vX.Y.Z && git push origin vX.Y.Z`,
+soit lancer le workflow `build` depuis l'onglet Actions avec `release_tag` = `vX.Y.Z`. Le workflow publie l'exe portable en
+Release GitHub. Les étiquettes sont définies dans `.github/labels.json` et
 synchronisées par le workflow `labels`.

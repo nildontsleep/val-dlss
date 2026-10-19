@@ -129,11 +129,7 @@ npm run dist    # exécutable portable Windows dans dist/ (à lancer sous Window
 
 La CI utilise Node.js 22. Les tests n'ont besoin ni d'un GPU ni de Windows.
 
-La CI ([`build.yml`](.github/workflows/build.yml)) teste et construit sur `windows-latest`. Pousser un tag `v*` publie l'exécutable en Release :
-
-```bash
-git tag v0.3.0 && git push origin v0.3.0
-```
+La CI ([`build.yml`](.github/workflows/build.yml)) teste et construit sur `windows-latest`. Pour publier l'exécutable en Release, pousse un tag `v*` (`git tag v0.3.0 && git push origin v0.3.0`) ou lance manuellement le workflow **build** depuis l'onglet *Actions* en renseignant `release_tag` (par exemple `v0.3.0`).
 
 ## Avertissements
 
