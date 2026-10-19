@@ -12,3 +12,14 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    # One pull request for all action updates.
+    groups:
+      actions:
+        patterns: ["*"]
+    ignore:
+      # These two are not exercised by pull request CI (they only run when publishing a release
+      # or syncing labels). Bump them by hand and test with a release run.
+      - dependency-name: "actions/download-artifact"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "actions/github-script"
+        update-types: ["version-update:semver-major"]
