@@ -1,0 +1,11 @@
+{
+  "appId": "app.morpheen.valorantdlss",
+  "productName": "Valorant DLSS",
+  "directories": { "output": "dist/portable", "buildResources": "build" },
+  "files": ["src/**/*", "package.json"],
+  "win": {
+    "target": [{ "target": "portable", "arch": ["x64"] }],
+    "artifactName": "Valorant-DLSS-${version}-portable.exe",
+    "icon": "src/assets/icon.png"
+  }
+}

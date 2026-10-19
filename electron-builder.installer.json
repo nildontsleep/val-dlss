@@ -1,0 +1,21 @@
+{
+  "appId": "app.morpheen.valorantdlss",
+  "productName": "Valorant DLSS",
+  "directories": { "output": "dist/installer", "buildResources": "build" },
+  "files": ["src/**/*", "package.json"],
+  "extraResources": [{ "from": "build/ffmpeg", "to": "ffmpeg", "filter": ["**/*"] }],
+  "win": {
+    "target": [{ "target": "nsis", "arch": ["x64"] }],
+    "icon": "src/assets/icon.png"
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Valorant DLSS",
+    "deleteAppDataOnUninstall": false,
+    "artifactName": "Valorant-DLSS-Setup-${version}.exe"
+  }
+}

@@ -8,7 +8,7 @@
 
 A **local**, **Windows-only**, deliberately minimal app that applies Neural Rendering to your Valorant clips: drop a clip, pick a style, run. English by default, French one click away.
 
-It is a friendly front-end for the Neural Rendering engine of [Visual Enhancer](https://github.com/Merserk/dlss5-visual-enhancer) by Merserk. It does **not** contain the engine, FFmpeg or any NVIDIA file: it drives the ones installed on your machine.
+It is a friendly front-end for the Neural Rendering engine of [Visual Enhancer](https://github.com/Merserk/dlss5-visual-enhancer) by Merserk. It does **not** contain the engine or any NVIDIA file: it drives the Visual Enhancer installed on your machine. The installer also ships FFmpeg, so you don't have to fetch it.
 
 ![Home screen](docs/screenshots/home.png)
 
@@ -33,13 +33,16 @@ It is a friendly front-end for the Neural Rendering engine of [Visual Enhancer](
 - Windows 11 (64-bit).
 - An NVIDIA GeForce RTX GPU supported by Visual Enhancer's Neural Rendering (see its README for the details).
 - [Visual Enhancer](https://github.com/Merserk/dlss5-visual-enhancer/releases): download and extract the ZIP.
-- [FFmpeg](https://ffmpeg.org/download.html) (`ffmpeg.exe`): needed for the preview and the TikTok method.
+- [FFmpeg](https://ffmpeg.org/download.html) (`ffmpeg.exe`): needed for the preview and the TikTok method. **Included in the installer**; only the portable version needs you to provide it.
 
 ## Install
 
-1. Download `Valorant-DLSS-x.y.z.exe` from the [Releases](../../releases) page. It is portable: nothing to install.
-2. Launch it. The app looks for Visual Enhancer (Downloads, Desktop, Documents) and for `ffmpeg.exe` (Visual Enhancer's folder, then your `PATH`). If it can't find them, it asks you once.
-3. Drop a clip and press **Run**. Exports land in `Videos\Valorant DLSS`.
+1. Download from the [Releases](../../releases) page:
+   - **`Valorant-DLSS-Setup-x.y.z.exe`** (recommended): installer, FFmpeg included. Per-user install, no admin rights needed, shortcuts created.
+   - `Valorant-DLSS-x.y.z-portable.exe`: nothing to install, smaller; you provide `ffmpeg.exe` yourself.
+2. Download and extract [Visual Enhancer](https://github.com/Merserk/dlss5-visual-enhancer/releases) separately. It is **not** bundled, on purpose: its license does not allow redistributing it without its author's written permission, and it relies on NVIDIA components that must not be repackaged.
+3. Launch the app. It looks for Visual Enhancer (Downloads, Desktop, Documents) and, with the portable version, for `ffmpeg.exe` (Visual Enhancer's folder, then your `PATH`). If it can't find something, it asks you once.
+4. Drop a clip and press **Run**. Exports land in `Videos\Valorant DLSS`.
 
 > **Windows SmartScreen / antivirus.** The executable is not code-signed, so SmartScreen may warn you ("More info" → "Run anyway"), and some antivirus tools may flag unsigned Electron apps. The code is public and the release is built by [GitHub Actions](https://github.com/nildontsleep/val-dlss/actions) from this repository; you can also build it yourself (see [Development](#development)).
 
@@ -97,7 +100,7 @@ Issues are tagged with labels (`bug`, `major-bug`, `enhancement`, `question`, `i
 
 ## Contributing
 
-Contributions are very welcome: bug reports, feature ideas, translations, documentation, code. Read [CONTRIBUTING.md](CONTRIBUTING.md) first; it explains the setup, the project's philosophy (a minimal app, no options nobody will use, local-first) and the rules (for instance: never bundle Visual Enhancer, FFmpeg or NVIDIA files). Issues labelled [`good first issue`](../../labels/good%20first%20issue) and [`help wanted`](../../labels/help%20wanted) are good places to start. By contributing you agree that your work is released under the [MIT License](LICENSE).
+Contributions are very welcome: bug reports, feature ideas, translations, documentation, code. Read [CONTRIBUTING.md](CONTRIBUTING.md) first; it explains the setup, the project's philosophy (a minimal app, no options nobody will use, local-first) and the rules (for instance: never bundle Visual Enhancer or NVIDIA files, and FFmpeg only through the pinned download script). Issues labelled [`good first issue`](../../labels/good%20first%20issue) and [`help wanted`](../../labels/help%20wanted) are good places to start. By contributing you agree that your work is released under the [MIT License](LICENSE).
 
 Please also read the [Code of Conduct](CODE_OF_CONDUCT.md).
 
@@ -124,18 +127,19 @@ Please also read the [Code of Conduct](CODE_OF_CONDUCT.md).
 npm ci
 npm test        # unit and engine tests (no GPU: a fake engine and a fake ffmpeg are used)
 npm start       # run the app (Electron)
-npm run dist    # Windows portable executable in dist/ (run on Windows)
+npm run dist    # portable executable in dist/portable/ (run on Windows)
+npm run dist:installer   # NSIS installer in dist/installer/ (downloads and checks the pinned FFmpeg first)
 ```
 
 Node.js 22 is used by CI. The tests need neither a GPU nor Windows.
 
-CI ([`build.yml`](.github/workflows/build.yml)) tests and builds on `windows-latest`. To publish the executable as a Release, either push a `v*` tag (`git tag v0.3.0 && git push origin v0.3.0`) or run the **build** workflow manually from the *Actions* tab and fill in `release_tag` (for example `v0.3.0`).
+CI ([`build.yml`](.github/workflows/build.yml)) tests and builds on `windows-latest`. To publish the executable as a Release, either push a `v*` tag (`git tag v0.4.0 && git push origin v0.4.0`) or run the **build** workflow manually from the *Actions* tab and fill in `release_tag` (for example `v0.4.0`).
 
 ## Disclaimers
 
 - Independent fan project, **not affiliated with, sponsored or endorsed by** Riot Games, NVIDIA or Visual Enhancer. VALORANT, DLSS and RTX belong to their owners. "Valorant DLSS" is a working title.
 - **Offline export only.** Do not run neural rendering during an online match: Riot's Vanguard anti-cheat does not like overlays or injection.
-- Visual Enhancer exposes Neural Rendering through an NVIDIA model that is not a stable public API. How it works, and its legal status, are that project's business: read its license and NVIDIA's terms. This repository redistributes none of its files, nor FFmpeg.
+- Visual Enhancer exposes Neural Rendering through an NVIDIA model that is not a stable public API. How it works, and its legal status, are that project's business: read its license and NVIDIA's terms. This repository redistributes none of its files. The installer ships an unmodified LGPL build of FFmpeg, as a separate executable (see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)).
 - Provided "as is", without warranty (see the [MIT License](LICENSE)). Use at your own risk and keep a copy of your original clips.
 
 ## Credits

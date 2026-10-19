@@ -1,7 +1,7 @@
 {
   "name": "valorant-dlss",
   "productName": "Valorant DLSS",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Interface locale et épurée pour le Neural Rendering de Visual Enhancer",
   "author": "Morpheen",
@@ -29,7 +29,9 @@
     "start": "electron .",
     "test": "node --test \"test/*.test.js\"",
     "predist": "node scripts/vendor.js",
-    "dist": "electron-builder --win portable --publish never"
+    "dist": "electron-builder --config electron-builder.portable.json --win portable --publish never",
+    "predist:installer": "node scripts/vendor.js && node scripts/fetch-ffmpeg.js",
+    "dist:installer": "electron-builder --config electron-builder.installer.json --win nsis --publish never"
   },
   "devDependencies": {
     "@fontsource-variable/inter": "^5.3.0",
@@ -38,29 +40,5 @@
     "electron": "44.9.0",
     "electron-builder": "26.15.3",
     "gsap": "3.15.0"
-  },
-  "build": {
-    "appId": "app.morpheen.valorantdlss",
-    "productName": "Valorant DLSS",
-    "directories": {
-      "output": "dist",
-      "buildResources": "build"
-    },
-    "files": [
-      "src/**/*",
-      "package.json"
-    ],
-    "win": {
-      "target": [
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "artifactName": "Valorant-DLSS-${version}.exe",
-      "icon": "src/assets/icon.png"
-    }
   }
 }

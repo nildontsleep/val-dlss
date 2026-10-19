@@ -50,7 +50,7 @@ body:
     id: app-version
     attributes:
       label: App version / Version de l'app
-      description: Shown in the file name of the exe (Valorant-DLSS-x.y.z.exe). / Visible dans le nom de l'exe.
+      description: Shown in the file name of the installer / exe (Valorant-DLSS-Setup-x.y.z.exe). / Visible dans le nom de l'exe.
       placeholder: "0.3.0"
     validations:
       required: true

@@ -6,6 +6,7 @@ const { Store } = require('./store');
 const { Engine, ENGINE_EXE, findEngine, autodetect, killTree, validatePreset } = require('./engine');
 const { sanitizeOptions, sanitizePresets, buildJobs, LANGS } = require('./args');
 const { findFfmpegIn, findFfmpegOnPath, checkFfmpeg } = require('./tiktok');
+const { bundledFfmpeg, pickFfmpeg } = require('./ffmpeg-path');
 const { needsPreset, buildPreset, SCHEMA_CANDIDATES } = require('./vepreset');
 const { probeDuration, extractFrame, renderFrame, uniqueName, dataUrl } = require('./preview');
 const { dialogText } = require('./strings');
@@ -86,7 +87,16 @@ function register() {
       const roots = ['downloads', 'desktop', 'documents', 'home'].map((n) => app.getPath(n));
       s = store.set({ enginePath: autodetect(roots) || '' });
     }
-    if (!ffmpegReady(s)) s = store.set({ ffmpegPath: findFfmpegIn(s.enginePath) || findFfmpegOnPath() || '' });
+    if (!ffmpegReady(s)) {
+      s = store.set({
+        ffmpegPath: pickFfmpeg({
+          saved: s.ffmpegPath,
+          bundled: bundledFfmpeg(process.resourcesPath, app.isPackaged),
+          searchIn: () => findFfmpegIn(s.enginePath),
+          onPath: findFfmpegOnPath,
+        }),
+      });
+    }
     return { settings: s, defaultOutputDir: defaultOutputDir(), exts: VIDEO };
   });
 
