@@ -66,7 +66,7 @@ git tag v0.2.0 && git push origin v0.2.0
 - Independent project, **not affiliated** with Riot Games, NVIDIA or Visual Enhancer. VALORANT, DLSS and RTX belong to their owners. "Valorant DLSS" is a working title: change it before any public release.
 - Offline export only. Don't run neural rendering during an online match: the Vanguard anti-cheat dislikes overlays and injections.
 - Visual Enhancer exposes Neural Rendering through an NVIDIA model that is not a stable public API yet; how it works and its legal status are that project's business, not this one's. This repo redistributes none of its files, nor ffmpeg.
-- Look inspired by morpheen.dev. Animations: [GSAP](https://gsap.com). Fonts: [Inter](https://rsms.me/inter/), [Instrument Serif](https://fonts.google.com/specimen/Instrument+Serif) and [JetBrains Mono](https://www.jetbrains.com/lp/mono/) (SIL OFL). All bundled locally.
+- Look inspired by morpheen.dev (viewfinder, timecode, timeline). Animations: [GSAP](https://gsap.com). Fonts: [Inter](https://rsms.me/inter/), [Instrument Serif](https://fonts.google.com/specimen/Instrument+Serif) and [JetBrains Mono](https://www.jetbrains.com/lp/mono/) (SIL OFL). All bundled locally.
 
 ---
 

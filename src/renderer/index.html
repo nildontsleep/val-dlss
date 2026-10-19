@@ -4,19 +4,28 @@
   <meta charset="utf-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#06070a">
   <title>Valorant DLSS</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="glow glow-a"></div>
-  <div class="glow glow-b"></div>
-  <div class="grid-overlay"></div>
+  <div class="vignette"></div>
   <div class="grain"></div>
+
+  <div id="loader" aria-hidden="true">
+    <div class="shutter top"></div>
+    <div class="shutter bot"></div>
+    <div class="ld-inner">
+      <div class="ld-row"><span class="ld-rec"><i></i>REC</span><span>valorant dlss</span></div>
+      <div class="ld-tc" id="ld-tc">00:00:00:00</div>
+      <div class="ld-bar"><i id="ld-bar"></i></div>
+    </div>
+  </div>
 
   <div class="app" id="app">
     <header class="top">
       <nav class="nav" id="nav">
-        <div class="brand"><span class="mark">V</span><span class="brand-name">Valorant <em>DLSS</em></span></div>
+        <div class="brand"><span class="logo">V</span><span class="brand-name">Valorant <em>DLSS</em></span></div>
         <i class="sep"></i>
         <div class="seg sm" id="lang" role="radiogroup" aria-label="Language" data-i18n-tip="tip.lang">
           <span class="seg-pill"></span>
@@ -24,6 +33,7 @@
           <button role="radio" data-v="fr">FR</button>
         </div>
         <i class="sep"></i>
+        <span class="rec-chip" id="rec" hidden><i></i><b id="rec-tc">00:00:00:00</b></span>
         <button class="status" id="status" data-i18n-tip="tip.status"><i></i><span data-i18n="status.missing"></span></button>
         <button class="icon" id="btn-info" data-i18n-tip="tip.info" data-i18n-aria="tip.info">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
@@ -33,8 +43,21 @@
 
     <main class="stage" id="stage">
       <section class="drop spot" id="drop" tabindex="0" role="button" data-i18n-aria="drop.title">
+        <div class="vf" aria-hidden="true">
+          <div class="thirds"></div>
+          <i class="c tl"></i><i class="c tr"></i><i class="c bl"></i><i class="c br"></i>
+          <span class="cross"></span>
+          <div class="lbl tl"><span class="rec"><i></i><b id="vf-state">STANDBY</b></span><span id="vf-tc">00:00:00:00</span></div>
+          <div class="lbl tr"><span id="vf-info">STYLE 2 · 1.00</span></div>
+          <div class="lbl bl"><span class="meter"><b></b><b></b><b></b><b></b></span><span id="vf-count">0 clips</span></div>
+          <div class="lbl br"><span id="vf-local">100% local</span></div>
+        </div>
         <div class="orbit">
-          <span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span>
+          <svg class="badge-spin" viewBox="0 0 170 170" aria-hidden="true">
+            <defs><path id="circ" d="M 85,85 m -68,0 a 68,68 0 1,1 136,0 a 68,68 0 1,1 -136,0"/></defs>
+            <text><textPath href="#circ">Neural rendering • 100% local • no upload • RTX •</textPath></text>
+          </svg>
+          <span class="ring r2"></span>
           <div class="drop-core">
             <svg viewBox="0 0 24 24"><path d="M12 16V5M7.5 9.5 12 5l4.5 4.5M5 19h14"/></svg>
           </div>

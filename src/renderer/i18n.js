@@ -3,6 +3,10 @@
 
   const DICT = {
     en: {
+      'vf.standby': 'Standby',
+      'vf.rec': 'Rec',
+      'vf.clips': '{n} clips',
+      'vf.local': '100% local',
       'status.ready': 'Engine ready',
       'status.missing': 'Engine missing',
       'tip.status': 'Visual Enhancer engine',
@@ -102,6 +106,10 @@
       'err.render': 'Preview failed: {detail}',
     },
     fr: {
+      'vf.standby': 'Veille',
+      'vf.rec': 'Rec',
+      'vf.clips': '{n} clips',
+      'vf.local': '100 % local',
       'status.ready': 'Moteur prêt',
       'status.missing': 'Moteur manquant',
       'tip.status': 'Moteur Visual Enhancer',

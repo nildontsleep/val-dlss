@@ -33,7 +33,7 @@ function createWindow() {
     height: 740,
     minWidth: 900,
     minHeight: 660,
-    backgroundColor: '#0a0806',
+    backgroundColor: '#06070a',
     title: 'Valorant DLSS',
     autoHideMenuBar: true,
     show: false,

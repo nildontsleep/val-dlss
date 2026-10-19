@@ -7,6 +7,12 @@
   const D = (x) => (reduce ? 0 : x);
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
   const basename = (p) => String(p || '').split(/[\\/]/).filter(Boolean).pop() || '';
+  const pad2 = (n) => String(n).padStart(2, '0');
+  // Timecode HH:MM:SS:FF à 24 images par seconde, comme dans un logiciel de montage.
+  const tc = (ms) => {
+    const total = Math.floor(ms / 1000);
+    return `${pad2(Math.floor(total / 3600))}:${pad2(Math.floor(total / 60) % 60)}:${pad2(total % 60)}:${pad2(Math.floor(((ms % 1000) / 1000) * 24))}`;
+  };
   const fmtTime = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
   const OPTION_KEYS = ['style', 'strength', 'compare', 'tiktok', 'tone', 'structure', 'skin', 'passes', 'autoMask', 'quality'];
@@ -39,6 +45,7 @@
   let pending = {};
   function save(patch) {
     Object.assign(S.settings, patch);
+    updateVF();
     Object.assign(pending, patch);
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
@@ -46,6 +53,35 @@
       pending = {};
       window.api.saveSettings(p);
     }, 150);
+  }
+
+  function updateVF() {
+    const s = S.settings;
+    $('#vf-state').textContent = t(S.running ? 'vf.rec' : 'vf.standby');
+    $('#vf-info').textContent = `STYLE ${s.style} · ${Number(s.strength).toFixed(2)}${s.tiktok !== false ? ' · TIKTOK' : ''}`;
+    $('#vf-count').textContent = t('vf.clips', { n: S.inputs.length });
+    $('#vf-local').textContent = t('vf.local');
+  }
+
+  function startRec() {
+    S.recStart = performance.now();
+    $('#rec').hidden = false;
+    clearInterval(S.recTimer);
+    S.recTimer = setInterval(() => {
+      const v = tc(performance.now() - S.recStart);
+      $('#rec-tc').textContent = v;
+      $('#vf-tc').textContent = v;
+    }, 80);
+    gsap.from('#rec', { opacity: 0, scale: 0.9, duration: D(0.3) });
+  }
+
+  function stopRec() {
+    clearInterval(S.recTimer);
+    setTimeout(() => {
+      if (S.running) return;
+      $('#rec').hidden = true;
+      $('#vf-tc').textContent = '00:00:00:00';
+    }, 4000);
   }
 
   const currentValues = () => Object.fromEntries(PRESET_KEYS.map((k) => [k, S.settings[k]]));
@@ -140,6 +176,7 @@
     syncStatus();
     syncPresetUI();
     setRunButton();
+    updateVF();
     for (const it of S.items) paintCard(it);
     if (persist) save({ lang: window.I18N.lang });
     requestAnimationFrame(refreshSegs);
@@ -557,6 +594,7 @@
     b.classList.toggle('stop', S.running);
     document.body.classList.toggle('running', S.running);
     $('#btn-clear').hidden = S.running || !S.items.length;
+    updateVF();
   }
 
   async function run() {
@@ -589,6 +627,7 @@
     }));
     S.running = true;
     setRunButton();
+    startRec();
     renderQueue();
     for (const ev of early.splice(0)) {
       const it = S.items.find((i) => i.key === ev.id);
@@ -740,6 +779,7 @@
     window.api.onFinished(({ cancelled }) => {
       S.running = false;
       setRunButton();
+      stopRec();
       if (cancelled) toast(t('toast.cancelled'));
       else if (S.items.length && S.items.every((i) => i.state === 'done')) toast(t('toast.done'));
       else if (S.items.some((i) => i.state === 'error')) toast(t('toast.someFailed'));
@@ -779,17 +819,39 @@
     gsap.set('#app', { autoAlpha: 1 });
     const title = $('#drop-title');
     const words = splitWords(title);
+    const loader = $('#loader');
     const tl = gsap.timeline({
       defaults: { ease: 'power3.out' },
       onComplete: () => (title.innerHTML = t(title.dataset.i18nHtml)),
     });
-    tl.from('.nav', { y: -40, opacity: 0, duration: D(0.8) })
-      .from('#drop', { y: 22, opacity: 0, scale: 0.985, duration: D(0.8) }, '-=0.45')
+    if (reduce) {
+      loader.style.display = 'none';
+    } else {
+      const c = { f: 0 };
+      tl.to(c, {
+        f: 24,
+        duration: 0.7,
+        ease: 'power1.inOut',
+        onUpdate: () => {
+          $('#ld-tc').textContent = tc((c.f / 24) * 1000);
+          $('#ld-bar').style.transform = `scaleX(${c.f / 24})`;
+        },
+      })
+        .addLabel('open', '+=0.05')
+        .to('#loader .shutter.top', { yPercent: -101, duration: 0.9, ease: 'expo.inOut' }, 'open')
+        .to('#loader .shutter.bot', { yPercent: 101, duration: 0.9, ease: 'expo.inOut' }, 'open')
+        .to('.ld-inner', { opacity: 0, duration: 0.25 }, 'open')
+        .add(() => (loader.style.display = 'none'));
+    }
+    const at = reduce ? 0 : 'open+=0.3';
+    tl.from('.nav', { y: -40, opacity: 0, duration: D(0.8) }, at)
+      .from('#drop', { y: 22, opacity: 0, scale: 0.985, duration: D(0.8) }, '<0.1')
+      .from('.vf', { opacity: 0, duration: D(0.9) }, '<0.2')
       .from('.drop-core', { scale: 0.6, opacity: 0, duration: D(0.9), ease: 'back.out(1.6)' }, '<0.1')
       .from(words, { yPercent: 60, opacity: 0, stagger: D(0.07), duration: D(0.8) }, '-=0.5')
       .from('.drop-sub', { opacity: 0, y: 10, duration: D(0.6) }, '-=0.4')
       .from('.dockwrap', { y: 34, opacity: 0, duration: D(0.7) }, '-=0.7');
-    if (!reduce) gsap.to('.drop-core', { y: -5, duration: 2.4, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 1.2 });
+    if (!reduce) gsap.to('.drop-core', { y: -5, duration: 2.4, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 2 });
   }
 
   async function init() {
@@ -802,6 +864,7 @@
       window.I18N.apply();
       bind();
       sync();
+      updateVF();
       $('#adv').inert = true;
       intro();
       setRunButton();
