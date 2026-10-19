@@ -1,0 +1,27 @@
+name: "❓ Question / Question"
+description: Ask how to use the app. Please read the README first. / Demande comment utiliser l'app. Lis d'abord le README.
+title: "[Question] "
+labels: ["question", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please check the [README](https://github.com/nildontsleep/val-dlss#readme) and existing issues first.
+        Questions about **Visual Enhancer itself** belong in [its repository](https://github.com/Merserk/dlss5-visual-enhancer/issues).
+        There is no support on Discord (except major bugs): ask here so that everyone can find the answer.
+        Lis d'abord le [README](https://github.com/nildontsleep/val-dlss/blob/main/README.fr.md) et les issues existantes. Pas de support sur Discord : pose ta question ici.
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question / Ta question
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you tried? / Qu'as-tu déjà essayé ?
+  - type: input
+    id: app-version
+    attributes:
+      label: App version / Version de l'app
+      placeholder: "0.3.0"

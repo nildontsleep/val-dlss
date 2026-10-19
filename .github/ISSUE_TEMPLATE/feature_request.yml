@@ -1,0 +1,49 @@
+name: "✨ Feature request / Demande de fonctionnalité"
+description: Suggest an idea or an improvement. / Propose une idée ou une amélioration.
+title: "[Feature] "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This app is **deliberately minimal**: it does a few things well and hides the rest. Requests that add options few people
+        will use are unlikely to be accepted, so please explain the problem you are trying to solve.
+        L'app est **volontairement minimale** : elle fait peu de choses et cache le reste. Explique surtout le problème que tu veux résoudre.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / Problème
+      description: What is hard or impossible today? / Qu'est-ce qui est difficile ou impossible aujourd'hui ?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution / Solution proposée
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered / Alternatives envisagées
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area / Zone
+      options:
+        - Interface / design
+        - Preview
+        - Advanced settings / presets
+        - TikTok method
+        - Export / output
+        - Languages (i18n)
+        - Documentation
+        - Other / Autre
+    validations:
+      required: true
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Contribution
+      options:
+        - label: I would be willing to work on this (a pull request). / Je suis prêt à y travailler (pull request).

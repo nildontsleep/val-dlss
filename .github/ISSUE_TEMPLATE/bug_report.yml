@@ -1,0 +1,97 @@
+name: "🐞 Bug report / Signaler un bug"
+description: Something in the app does not work as expected. / Quelque chose ne fonctionne pas comme prévu.
+title: "[Bug] "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time! Please **search existing issues first**. English or French are both fine.
+        Merci ! **Cherche d'abord dans les issues existantes.** Anglais ou français, comme tu préfères.
+
+        - Problems **inside Visual Enhancer** (its render crashes, unsupported GPU, model results) → [report them upstream](https://github.com/Merserk/dlss5-visual-enhancer/issues).
+        - Security problem → **do not post here**, see [SECURITY.md](https://github.com/nildontsleep/val-dlss/blob/main/SECURITY.md).
+        - Support is done **through issues**, not on Discord (except major bugs): see [SUPPORT.md](https://github.com/nildontsleep/val-dlss/blob/main/SUPPORT.md).
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity / Gravité
+      description: A *major* bug = the app won't start or crashes at launch, every render fails although Visual Enhancer and ffmpeg work alone, your original files are overwritten/deleted, or processes keep running after closing the app.
+      options:
+        - "Major / Majeur (crash at launch, all renders fail, data loss…)"
+        - "Normal (a feature does not work)"
+        - "Minor / Mineur (cosmetic, small annoyance)"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened? / Que s'est-il passé ?
+      description: Describe the problem. Add a screenshot if it helps. / Décris le problème, avec une capture si utile.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / Étapes pour reproduire
+      placeholder: |
+        1. Drop a clip …
+        2. Turn on …
+        3. Press Run …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect? / Qu'attendais-tu ?
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: App version / Version de l'app
+      description: Shown in the file name of the exe (Valorant-DLSS-x.y.z.exe). / Visible dans le nom de l'exe.
+      placeholder: "0.3.0"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version / Version de Windows
+      placeholder: "Windows 11 23H2"
+    validations:
+      required: true
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU and driver / GPU et pilote
+      placeholder: "RTX 5070 Ti, driver 5xx.xx"
+    validations:
+      required: true
+  - type: input
+    id: ve-version
+    attributes:
+      label: Visual Enhancer version / Version de Visual Enhancer
+      placeholder: "v16.0"
+    validations:
+      required: true
+  - type: input
+    id: ffmpeg-version
+    attributes:
+      label: ffmpeg version (if the preview or TikTok method is involved) / version de ffmpeg
+      placeholder: "ffmpeg 7.1"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Journaux
+      description: If relevant, paste the end of the Visual Enhancer log (`data\logs\` in its folder) or any message shown by the app. / Si utile, colle la fin du journal de Visual Enhancer (`data\logs\`) ou le message affiché.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and this is not a duplicate. / J'ai cherché et ce n'est pas un doublon.
+          required: true
+        - label: The problem is in this app, not only inside Visual Enhancer itself. / Le problème vient de cette app, pas seulement de Visual Enhancer.
+          required: true

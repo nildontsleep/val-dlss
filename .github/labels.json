@@ -1,0 +1,112 @@
+[
+  {
+    "name": "bug",
+    "color": "d73a4a",
+    "description": "Something does not work as expected"
+  },
+  {
+    "name": "major-bug",
+    "color": "b60205",
+    "description": "Crash at launch, every render failing, data loss… (see SUPPORT.md)"
+  },
+  {
+    "name": "enhancement",
+    "color": "a2eeef",
+    "description": "Feature request or improvement"
+  },
+  {
+    "name": "question",
+    "color": "d876e3",
+    "description": "Usage question"
+  },
+  {
+    "name": "documentation",
+    "color": "0075ca",
+    "description": "README, guides, tooltips"
+  },
+  {
+    "name": "i18n",
+    "color": "5319e7",
+    "description": "Translations and languages"
+  },
+  {
+    "name": "ui",
+    "color": "f9d0c4",
+    "description": "Interface and design"
+  },
+  {
+    "name": "engine",
+    "color": "fbca04",
+    "description": "Related to Visual Enhancer (upstream)"
+  },
+  {
+    "name": "tiktok-method",
+    "color": "1d76db",
+    "description": "The TikTok quality method"
+  },
+  {
+    "name": "preview",
+    "color": "0e8a16",
+    "description": "One-frame preview"
+  },
+  {
+    "name": "advanced-settings",
+    "color": "c5def5",
+    "description": "Advanced settings (tone, detail, skin, passes, mask, quality)"
+  },
+  {
+    "name": "presets",
+    "color": "bfd4f2",
+    "description": "Saved presets"
+  },
+  {
+    "name": "performance",
+    "color": "fef2c0",
+    "description": "Speed or resource usage"
+  },
+  {
+    "name": "security",
+    "color": "ee0701",
+    "description": "Security-related (report vulnerabilities privately, see SECURITY.md)"
+  },
+  {
+    "name": "needs-triage",
+    "color": "ededed",
+    "description": "Not reviewed yet"
+  },
+  {
+    "name": "needs-info",
+    "color": "fbca04",
+    "description": "More information needed from the reporter"
+  },
+  {
+    "name": "good first issue",
+    "color": "7057ff",
+    "description": "Good for newcomers"
+  },
+  {
+    "name": "help wanted",
+    "color": "008672",
+    "description": "Contributions are welcome here"
+  },
+  {
+    "name": "dependencies",
+    "color": "0366d6",
+    "description": "Dependency updates"
+  },
+  {
+    "name": "duplicate",
+    "color": "cfd3d7",
+    "description": "This issue already exists"
+  },
+  {
+    "name": "invalid",
+    "color": "e4e669",
+    "description": "Not a valid issue for this project"
+  },
+  {
+    "name": "wontfix",
+    "color": "ffffff",
+    "description": "Will not be worked on"
+  }
+]

@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "🔒 Security problem / Problème de sécurité"
+    url: https://github.com/nildontsleep/val-dlss/security/advisories/new
+    about: "Do not post it publicly, report it privately here. / Ne le publie pas, signale-le en privé ici."
+  - name: "⚙️ Bug in the rendering engine itself / Bug du moteur de rendu"
+    url: https://github.com/Merserk/dlss5-visual-enhancer/issues
+    about: "Crashes inside Visual Enhancer, unsupported GPU, model results: report them upstream. / À signaler au dépôt de Visual Enhancer."
+  - name: "📖 Read the support policy / Lire la politique de support"
+    url: https://github.com/nildontsleep/val-dlss/blob/main/SUPPORT.md
+    about: "What is handled here, what is a major bug, and why there is no Discord support. / Ce qui est traité ici, ce qu'est un bug majeur, et pourquoi pas de support Discord."

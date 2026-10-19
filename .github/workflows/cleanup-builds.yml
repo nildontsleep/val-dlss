@@ -1,0 +1,41 @@
+name: cleanup-builds
+
+# Maintenance manuelle : supprime les anciens artefacts de build et les anciens runs terminés,
+# en gardant les `keep` artefacts les plus récents (et leurs runs).
+on:
+  workflow_dispatch:
+    inputs:
+      keep:
+        description: Number of newest build artifacts to keep
+        default: '1'
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          KEEP: ${{ inputs.keep }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const keep = Math.max(0, parseInt(process.env.KEEP, 10) || 0);
+            const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, { owner, repo, per_page: 100 });
+            artifacts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            const kept = artifacts.slice(0, keep);
+            const keptRuns = new Set(kept.map((a) => a.workflow_run && a.workflow_run.id));
+            core.info(`artifacts: ${artifacts.length} found, keeping ${kept.length}`);
+            for (const a of artifacts.slice(keep)) {
+              await github.rest.actions.deleteArtifact({ owner, repo, artifact_id: a.id });
+              core.info(`deleted artifact ${a.name} (${a.id}) of run ${a.workflow_run && a.workflow_run.id}`);
+            }
+            const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, { owner, repo, per_page: 100 });
+            for (const r of runs) {
+              if (r.id === context.runId || r.status !== 'completed' || keptRuns.has(r.id)) continue;
+              await github.rest.actions.deleteWorkflowRun({ owner, repo, run_id: r.id });
+              core.info(`deleted run #${r.run_number} ${r.name} (${r.head_branch})`);
+            }

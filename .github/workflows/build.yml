@@ -2,13 +2,17 @@ name: build
 
 on:
   push:
-    branches: ['**']
+    branches: [main]
     tags: ['v*']
   pull_request:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   windows:
@@ -26,9 +30,21 @@ jobs:
         with:
           name: Valorant-DLSS-portable
           path: dist/*.exe
-      - name: Publier la release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
+          retention-days: 14
+          if-no-files-found: error
+
+  release:
+    needs: windows
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Valorant-DLSS-portable
+          path: dist
+      - uses: softprops/action-gh-release@v2
         with:
           files: dist/*.exe
           generate_release_notes: true

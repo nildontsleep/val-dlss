@@ -1,0 +1,33 @@
+name: "🌍 Translation / Traduction"
+description: Fix a translation, or propose a new language. / Corrige une traduction ou propose une nouvelle langue.
+title: "[i18n] "
+labels: ["i18n", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The app is in English by default, with French available. See the *i18n* section of
+        [CONTRIBUTING.md](https://github.com/nildontsleep/val-dlss/blob/main/CONTRIBUTING.md) if you want to send the translation yourself.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Type
+      options:
+        - Wrong or unclear text in an existing language / Texte faux ou peu clair
+        - Missing text / Texte manquant
+        - New language / Nouvelle langue
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details / Détails
+      description: Where is the text, what does it say now, and what should it say? / Où est le texte, que dit-il, que devrait-il dire ?
+    validations:
+      required: true
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Contribution
+      options:
+        - label: I can send the translation as a pull request. / Je peux envoyer la traduction en pull request.
