@@ -21,6 +21,7 @@ let starting = false;
 let previewRun = null; // aperçu en cours : { cancelled, cancel }
 let frameCache = null; // dernière frame extraite : { key, path }
 let schemaVerified = false; // le schema_version du preset a déjà été accepté par ce Visual Enhancer
+const openableDirs = new Set(); // dossiers de sortie que l'interface a le droit d'ouvrir
 
 const defaultOutputDir = () => path.join(app.getPath('videos'), 'Valorant DLSS');
 const previewDir = () => path.join(app.getPath('temp'), 'valorant-dlss');
@@ -226,6 +227,7 @@ function register() {
       }
 
       const jobs = buildJobs({ files, options, outputDir: settings.outputDir || defaultOutputDir(), presetPath });
+      for (const j of jobs) openableDirs.add(path.resolve(j.finalDir));
       const engine = new Engine({ exe, ffmpeg: settings.ffmpegPath });
       current = engine.run(jobs, { concurrency: options.compare ? 3 : 1, onEvent: (ev) => send('job:update', ev) });
       current.done.then((r) => {
@@ -243,8 +245,11 @@ function register() {
     return { ok: true };
   });
 
+  // Seuls les dossiers de sortie créés par un rendu peuvent être ouverts : l'interface ne choisit pas un chemin libre.
   ipcMain.handle('shell:openFolder', (_e, dir) => {
-    if (typeof dir === 'string' && fs.existsSync(dir)) shell.openPath(dir);
+    if (typeof dir !== 'string') return;
+    const resolved = path.resolve(dir);
+    if (openableDirs.has(resolved) && fs.existsSync(resolved)) shell.openPath(resolved);
   });
   ipcMain.handle('shell:link', (_e, which) => shell.openExternal(which === 'ffmpeg' ? FFMPEG_URL : RELEASES_URL));
 }
