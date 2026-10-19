@@ -30,8 +30,10 @@ documentation, design feedback and code. Please read the [Code of Conduct](CODE_
 
 ### Hard rules
 
-- **Never commit or bundle Visual Enhancer, FFmpeg, NVIDIA files, DLLs or any third-party binary.** The app drives
-  what the user installed. Pull requests that add such files will be closed.
+- **Never commit or bundle Visual Enhancer, NVIDIA files, DLLs or any third-party binary.** The app drives
+  what the user installed. Pull requests that add such files will be closed. The one exception is FFmpeg in the
+  installer: it is never committed, it is downloaded by `scripts/fetch-ffmpeg.js` from the exact build and SHA-256
+  pinned in `scripts/ffmpeg.json` (an LGPL build, used as a separate executable). To update it, change that pin.
 - Do not add code that injects into, hooks or overlays Valorant or any game process.
 - Do not add dependencies lightly. Each one must be justified, and its license must be compatible with MIT.
 - Keep third-party licenses up to date in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
@@ -47,6 +49,7 @@ npm ci
 npm test        # unit + engine tests
 npm start       # run the app (Electron)
 npm run dist    # build the portable exe (on Windows)
+npm run dist:installer   # build the installer, with the pinned FFmpeg (on Windows)
 ```
 
 `npm start` and `npm run dist` first copy GSAP and the fonts into `src/renderer/vendor/` (`scripts/vendor.js`); that
@@ -129,8 +132,11 @@ documentation, retours de design et code. Lis d'abord le [Code de conduite](CODE
 
 ### Règles strictes
 
-- **Ne jamais commiter ni embarquer Visual Enhancer, FFmpeg, des fichiers NVIDIA, des DLL ou tout binaire tiers.**
+- **Ne jamais commiter ni embarquer Visual Enhancer, des fichiers NVIDIA, des DLL ou tout binaire tiers.**
   L'app pilote ce que l'utilisateur a installé. Les pull requests qui ajoutent de tels fichiers seront fermées.
+  Seule exception : FFmpeg dans l'installeur. Il n'est jamais commité, il est téléchargé par
+  `scripts/fetch-ffmpeg.js` depuis la build exacte et le SHA-256 épinglés dans `scripts/ffmpeg.json` (build LGPL,
+  utilisée comme exécutable séparé). Pour le mettre à jour, modifie cette épingle.
 - N'ajoute aucun code qui s'injecte dans Valorant ou un autre jeu, s'y accroche ou s'y superpose.
 - N'ajoute pas de dépendances à la légère : chacune doit être justifiée, avec une licence compatible MIT.
 - Garde les licences tierces à jour dans [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
@@ -146,6 +152,7 @@ npm ci
 npm test        # tests unitaires + moteur
 npm start       # lance l'app (Electron)
 npm run dist    # construit l'exe portable (sous Windows)
+npm run dist:installer   # construit l'installeur, avec le FFmpeg épinglé (sous Windows)
 ```
 
 `npm start` et `npm run dist` copient d'abord GSAP et les polices dans `src/renderer/vendor/` (`scripts/vendor.js`) ;
