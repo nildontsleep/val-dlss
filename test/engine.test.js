@@ -87,3 +87,29 @@ test('findEngine et autodetect trouvent le dossier de Visual Enhancer', () => {
   assert.equal(autodetect([path.join(root, 'nope'), root]), ve);
   assert.equal(findEngine(path.join(root, 'nope')), null);
 });
+
+test('sans TikTok, un clip situé dans le dossier de sortie est rendu, puis le fichier est déplacé', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vdlss-same-'));
+  const clip = path.join(dir, 'see u again.mp4');
+  fs.writeFileSync(clip, 'x');
+  for (const expected of ['see u again_Neural_Rendering.mp4', 'see u again_Neural_Rendering (2).mp4']) {
+    const jobs = buildJobs({ files: [clip], options: { tiktok: false }, outputDir: dir });
+    const events = [];
+    await engine.run(jobs, { onEvent: (e) => events.push(e) }).done;
+    const last = events.at(-1);
+    assert.equal(last.state, 'done', JSON.stringify(last));
+    assert.equal(last.result.output, path.join(dir, expected));
+    assert.ok(!events.some((e) => e.phase), 'aucune étape TikTok affichée');
+    assert.ok(fs.existsSync(last.result.output));
+  }
+  assert.deepEqual(fs.readdirSync(dir).sort(), ['see u again.mp4', 'see u again_Neural_Rendering (2).mp4', 'see u again_Neural_Rendering.mp4']);
+});
+
+test('un rendu annulé ou en échec sans TikTok ne laisse pas de dossier caché', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vdlss-nt-'));
+  const jobs = buildJobs({ files: ['fail.mp4'], options: { tiktok: false }, outputDir: dir });
+  const events = [];
+  await engine.run(jobs, { onEvent: (e) => events.push(e) }).done;
+  assert.equal(events.at(-1).state, 'error');
+  assert.deepEqual(fs.readdirSync(dir), []);
+});

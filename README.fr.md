@@ -154,7 +154,7 @@ npm run dist:installer   # installeur NSIS dans dist/installer/ (télécharge et
 
 La CI utilise Node.js 22. Les tests n'ont besoin ni d'un GPU ni de Windows.
 
-La CI ([`build.yml`](.github/workflows/build.yml)) teste et construit sur `windows-latest`. Pour publier l'exécutable en Release, pousse un tag `v*` (`git tag v0.5.0 && git push origin v0.5.0`) ou lance manuellement le workflow **build** depuis l'onglet *Actions* en renseignant `release_tag` (par exemple `v0.5.0`).
+La CI ([`build.yml`](.github/workflows/build.yml)) teste et construit sur `windows-latest`. Pour publier l'exécutable en Release, pousse un tag `v*` (`git tag v0.5.1 && git push origin v0.5.1`) ou lance manuellement le workflow **build** depuis l'onglet *Actions* en renseignant `release_tag` (par exemple `v0.5.1`).
 
 ## Avertissements
 

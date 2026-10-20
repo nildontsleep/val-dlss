@@ -38,9 +38,9 @@ function autodetect(roots) {
   return null;
 }
 
-// Dossier de travail caché de la méthode TikTok : supprimé quand le rendu échoue ou est annulé.
+// Dossier de travail caché du rendu : supprimé quand le rendu échoue ou est annulé.
 function dropWork(job) {
-  if (job.tiktok && path.basename(job.outDir).startsWith('.vdlss-')) fs.rmSync(job.outDir, { recursive: true, force: true });
+  if (path.basename(job.outDir).startsWith('.vdlss-')) fs.rmSync(job.outDir, { recursive: true, force: true });
 }
 
 function killTree(child) {
@@ -134,28 +134,11 @@ class Engine {
               /* pas de JSON : on garde la fin de stderr */
             }
             onEvent({ id: job.id, state: 'error', message: reason || tail.slice(-2).join(' · ') || `code ${code}` });
-          } else if (!job.tiktok) {
-            let result = null;
-            try {
-              const item = JSON.parse(stdout).items?.[0];
-              if (item?.output_path) result = { output: item.output_path };
-            } catch {
-              /* sortie non JSON : sans importance */
-            }
-            let note = null;
-            if (job.maxMB && result) {
-              onEvent({ id: job.id, state: 'running', phase: 'fit', progress: null });
-              note = noteFor(await fit(result.output));
-              running.delete(`${job.id}:post`);
-              if (cancelled) {
-                onEvent({ id: job.id, state: 'cancelled' });
-                return resolve();
-              }
-            }
-            onEvent({ id: job.id, state: 'done', progress: 100, result, ...note });
           } else {
-            onEvent({ id: job.id, state: 'running', phase: job.maxMB ? 'fit' : 'finish', progress: null });
+            const firstPhase = job.maxMB ? 'fit' : job.tiktok ? 'finish' : null;
+            if (firstPhase) onEvent({ id: job.id, state: 'running', phase: firstPhase, progress: null });
             const res = await finish({
+              method: job.tiktok,
               ffmpeg: this.ffmpeg,
               prefix: this.ffmpegPrefix,
               workDir: job.outDir,

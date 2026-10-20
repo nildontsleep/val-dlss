@@ -32,6 +32,8 @@ if (input && input.includes('fail')) {
 }
 
 const isImage = /\.(png|jpe?g)$/i.test(input);
+// Comme la vraie CLI : un clip situé dans le dossier de sortie n'est pas pris en entrée.
+if (!isImage && path.resolve(path.dirname(input)) === path.resolve(out)) fail(`No supported images or videos found: ${input}`);
 const target = isImage ? out : path.join(out, `${path.parse(input).name}_Neural_Rendering.mp4`);
 let p = 0;
 const timer = setInterval(() => {

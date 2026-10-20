@@ -15,10 +15,14 @@ test('un clip -> un job h264/mp4, rendu dans un dossier caché avec la méthode 
   ]);
 });
 
-test('sans la méthode TikTok, le rendu va directement dans le dossier final', () => {
-  const [job] = buildJobs({ files: ['a.mp4'], options: { tiktok: false }, outputDir: out });
-  assert.equal(job.outDir, out);
-  assert.equal(job.tiktok, false);
+test('le rendu part toujours dans un dossier de travail caché, avec ou sans TikTok', () => {
+  for (const tiktok of [false, true]) {
+    const [job] = buildJobs({ files: ['a.mp4'], options: { tiktok }, outputDir: out });
+    assert.equal(path.dirname(job.outDir), out);
+    assert.match(path.basename(job.outDir), /^\.vdlss-/);
+    assert.equal(job.finalDir, out);
+    assert.equal(job.tiktok, tiktok);
+  }
 });
 
 test('le mode comparaison crée un job par style dans des sous-dossiers', () => {
