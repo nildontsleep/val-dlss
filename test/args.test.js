@@ -40,8 +40,8 @@ test('le preset et la qualité choisie sont passés à la CLI', () => {
 
 test('les options sont bornées', () => {
   const o = sanitizeOptions({ style: 9, strength: 99, compare: 'oui', tiktok: false, tone: -3, skin: 7, passes: 99, autoMask: 'x', quality: 'rm -rf' });
-  assert.deepEqual(o, { style: 2, strength: 2, compare: false, tiktok: false, tone: 0, structure: 1, skin: 1, passes: 3, autoMask: false, quality: 'best' });
-  assert.deepEqual(sanitizeOptions(), { style: 2, strength: 1, compare: false, tiktok: true, tone: 1, structure: 1, skin: 1, passes: 1, autoMask: false, quality: 'best' });
+  assert.deepEqual(o, { style: 2, strength: 2, compare: false, tiktok: false, tone: 0, structure: 1, skin: 1, passes: 3, autoMask: false, quality: 'best', maxSize: 0 });
+  assert.deepEqual(sanitizeOptions(), { style: 2, strength: 1, compare: false, tiktok: true, tone: 1, structure: 1, skin: 1, passes: 1, autoMask: false, quality: 'best', maxSize: 0 });
 });
 
 test('les presets de l\'app sont nettoyés : noms, doublons, valeurs', () => {
@@ -57,6 +57,7 @@ test('les presets de l\'app sont nettoyés : noms, doublons, valeurs', () => {
   assert.equal(list[0].values.tone, 0.5);
   assert.equal(list[0].values.passes, 3);
   assert.ok(!('tiktok' in list[0].values));
+  assert.ok(!('maxSize' in list[0].values));
   assert.equal(list[1].name.length, 40);
   assert.deepEqual(sanitizePresets('nope'), []);
 });

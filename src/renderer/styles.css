@@ -195,6 +195,7 @@ em { font-family: var(--serif); font-style: italic; font-weight: 400; color: var
 .running .job .rm { display: none !important; }
 .job-msg { grid-column: 2 / -1; margin: 0; font-size: 12px; color: var(--err); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .job-msg:empty { display: none; }
+[data-state="done"] .job-msg { color: var(--text-dim); }
 /* Piste de timeline : règle graduée, clip qui se remplit, tête de lecture */
 .track { grid-column: 2 / -1; position: relative; height: 16px; margin-top: 6px; border-radius: 5px; border: 1px solid var(--border); clip-path: inset(-12px 0 -12px 0);
   background-color: rgba(255, 255, 255, 0.03); background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.14) 0 1px, transparent 1px 10px); background-size: 100% 5px; background-repeat: repeat-x; background-position: 0 100%; }
@@ -211,6 +212,11 @@ em { font-family: var(--serif); font-style: italic; font-weight: 400; color: var
 .dock { display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: var(--surface); backdrop-filter: blur(22px) saturate(160%); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.05); }
 .field { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; }
 .field > span:first-child, .adv-presets > span:first-child { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--label); white-space: nowrap; }
+.field.num { flex: none; }
+.field.num input { width: 84px; padding: 6px 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); color: var(--text); font-family: var(--mono); font-size: 12px; text-align: right; -moz-appearance: textfield; }
+.field.num input::-webkit-inner-spin-button, .field.num input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.field.num input:focus { outline: none; border-color: var(--accent); }
+.field.num em { font-style: normal; font-family: var(--mono); font-size: 11px; color: var(--label); }
 .field output { min-width: 38px; text-align: right; font-family: var(--mono); font-size: 12px; color: var(--text); font-variant-numeric: tabular-nums; }
 
 input[type="range"] { -webkit-appearance: none; appearance: none; flex: 1; height: 18px; background: transparent; cursor: pointer; min-width: 60px; }
@@ -241,6 +247,10 @@ input[type="range"]:hover::-webkit-slider-thumb { box-shadow: 0 0 0 7px rgba(94,
 .ghost svg { width: 15px; height: 15px; }
 .ghost.sm { padding: 6px 12px; font-size: 12.5px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); }
 .ghost.sm:hover { border-color: var(--border-strong); }
+.chip.upd { max-width: none; color: #fff; background: rgba(94, 156, 255, 0.16); border-color: rgba(94, 156, 255, 0.5); margin-right: 2px; }
+.chip.upd:hover { background: rgba(94, 156, 255, 0.26); }
+.chip.upd svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.chip.upd[disabled] { opacity: 0.7; cursor: progress; }
 .chip { display: inline-flex; align-items: center; gap: 8px; max-width: 130px; padding: 9px 14px; border-radius: 999px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); color: var(--text-dim); font-size: 12.5px; transition: color 0.3s, border-color 0.3s; }
 .chip:hover { color: #fff; border-color: var(--border-strong); }
 .chip svg { width: 15px; height: 15px; }

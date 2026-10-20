@@ -13,8 +13,21 @@ if (args.includes('-frames:v')) {
   fs.writeFileSync(args[args.length - 1], `frame@${args[args.indexOf('-ss') + 1]}`);
   process.exit(0);
 }
+if (args.includes('h264_nvenc')) {
+  if (process.env.FAKE_FFMPEG_FIT_FAIL) {
+    console.error('Cannot load nvcuda.dll');
+    process.exit(1);
+  }
+  if (process.env.FAKE_FFMPEG_LOG) fs.appendFileSync(process.env.FAKE_FFMPEG_LOG, JSON.stringify(args) + '\n');
+  fs.writeFileSync(args[args.length - 1], 'x'.repeat(Number(process.env.FAKE_FFMPEG_FIT_BYTES || 10)));
+  process.exit(0);
+}
 if (!args.includes('-itsscale')) {
-  const fps = (fs.readFileSync(input, 'utf8').match(/(\d+(?:\.\d+)?)fps/) || [, '120'])[1];
+  const head = Buffer.alloc(4096);
+  const fd = fs.openSync(input, 'r');
+  const n = fs.readSync(fd, head, 0, 4096, 0);
+  fs.closeSync(fd);
+  const fps = (head.subarray(0, n).toString('utf8').match(/(\d+(?:\.\d+)?)fps/) || [, '120'])[1];
   console.error(`Input #0, mov,mp4, from '${input}':\n  Duration: 00:00:12.50, start: 0.000000, bitrate: 12000 kb/s`);
   console.error(`  Stream #0:0[0x1](und): Video: h264 (High), yuv420p, 1920x1080, 12000 kb/s, ${fps} fps, ${fps} tbr`);
   console.error('At least one output file must be specified');

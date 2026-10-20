@@ -3,6 +3,7 @@ const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 const { finish, run: runCapture, lastLine } = require('./tiktok');
+const { fitFile, noteFor } = require('./fit');
 
 const ENGINE_EXE = 'VE_CLI.exe';
 
@@ -67,6 +68,15 @@ class Engine {
 
     const runOne = (job) =>
       new Promise((resolve) => {
+        const fit = async (file) =>
+          fitFile({
+            ffmpeg: this.ffmpeg,
+            prefix: this.ffmpegPrefix,
+            file,
+            maxMB: job.maxMB,
+            track: (c) => running.set(`${job.id}:post`, c),
+            isCancelled: () => cancelled,
+          });
         try {
           fs.mkdirSync(job.outDir, { recursive: true });
         } catch {
@@ -132,9 +142,19 @@ class Engine {
             } catch {
               /* sortie non JSON : sans importance */
             }
-            onEvent({ id: job.id, state: 'done', progress: 100, result });
+            let note = null;
+            if (job.maxMB && result) {
+              onEvent({ id: job.id, state: 'running', phase: 'fit', progress: null });
+              note = noteFor(await fit(result.output));
+              running.delete(`${job.id}:post`);
+              if (cancelled) {
+                onEvent({ id: job.id, state: 'cancelled' });
+                return resolve();
+              }
+            }
+            onEvent({ id: job.id, state: 'done', progress: 100, result, ...note });
           } else {
-            onEvent({ id: job.id, state: 'running', phase: 'finish', progress: null });
+            onEvent({ id: job.id, state: 'running', phase: job.maxMB ? 'fit' : 'finish', progress: null });
             const res = await finish({
               ffmpeg: this.ffmpeg,
               prefix: this.ffmpegPrefix,
@@ -143,10 +163,12 @@ class Engine {
               stem: job.stem,
               track: (c) => running.set(`${job.id}:post`, c),
               isCancelled: () => cancelled,
+              fit: job.maxMB ? async (f) => noteFor(await fit(f)) : null,
+              onPhase: (phase) => onEvent({ id: job.id, state: 'running', phase, progress: null }),
             });
             running.delete(`${job.id}:post`);
             if (res.cancelled || cancelled) onEvent({ id: job.id, state: 'cancelled' });
-            else if (res.ok) onEvent({ id: job.id, state: 'done', progress: 100, result: { output: res.output } });
+            else if (res.ok) onEvent({ id: job.id, state: 'done', progress: 100, result: { output: res.output }, ...(res.note || {}) });
             else onEvent({ id: job.id, state: 'error', code: res.code, params: res.params });
           }
           resolve();

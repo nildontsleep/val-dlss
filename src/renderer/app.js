@@ -15,7 +15,7 @@
   };
   const fmtTime = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
-  const OPTION_KEYS = ['style', 'strength', 'compare', 'tiktok', 'tone', 'structure', 'skin', 'passes', 'autoMask', 'quality'];
+  const OPTION_KEYS = ['style', 'strength', 'compare', 'tiktok', 'tone', 'structure', 'skin', 'passes', 'autoMask', 'quality', 'maxSize'];
   const PRESET_KEYS = ['style', 'strength', 'tone', 'structure', 'skin', 'passes', 'autoMask', 'quality'];
   const DEFAULTS = { style: 2, strength: 1, tone: 1, structure: 1, skin: 1, passes: 1, autoMask: false, quality: 'best' };
   const ADV_KEYS = ['tone', 'structure', 'skin', 'passes', 'autoMask', 'quality'];
@@ -28,6 +28,7 @@
     view: 'inputs',
     running: false,
     defaultOut: '',
+    update: null,
     advOpen: false,
     pv: { open: false, idx: 0, time: 0, duration: 0, token: 0, timer: null },
   };
@@ -145,6 +146,7 @@
     $('#compare').checked = !!s.compare;
     $('#tiktok').checked = s.tiktok !== false;
     $('#automask').checked = !!s.autoMask;
+    $('#maxsize').value = s.maxSize > 0 ? s.maxSize : '';
     $('#out-name').textContent = basename(s.outputDir || S.defaultOut) || 'Valorant DLSS';
     syncStatus();
     syncPresetUI();
@@ -168,6 +170,37 @@
     if (S.pv.open) schedulePreview(300);
   }
 
+  /* ---------- mise à jour ---------- */
+  function paintUpdate(progress = null) {
+    const u = S.update;
+    const b = $('#btn-update');
+    b.hidden = !u;
+    if (!u) return;
+    $('#upd-label').textContent = progress === null ? t('update.btn', { v: u.version }) : t('update.downloading', { p: progress });
+    b.dataset.tip = t(u.direct ? 'update.tip' : 'update.tipPage', { v: u.version });
+    b.disabled = progress !== null;
+  }
+  async function checkUpdate() {
+    try {
+      const r = await window.api.checkUpdate();
+      if (!r.ok || !r.update) return;
+      S.update = r.update;
+      paintUpdate();
+      gsap.from('#btn-update', { opacity: 0, scale: 0.85, duration: D(0.5), ease: 'back.out(2)' });
+    } catch {
+      /* hors ligne : on continue sans */
+    }
+  }
+  async function installUpdate() {
+    paintUpdate(0);
+    const off = window.api.onUpdateProgress((p) => paintUpdate(p));
+    const r = await window.api.installUpdate();
+    off();
+    if (r.ok) return paintUpdate(null);
+    paintUpdate(null);
+    toast(r.error === 'busy' ? t('toast.updateBusy') : t('toast.updateFail', { detail: r.error || '?' }));
+  }
+
   /* ---------- langue ---------- */
   function setLang(lang, persist) {
     window.I18N.lang = lang;
@@ -177,6 +210,7 @@
     syncPresetUI();
     setRunButton();
     updateVF();
+    paintUpdate();
     for (const it of S.items) paintCard(it);
     if (persist) save({ lang: window.I18N.lang });
     requestAnimationFrame(refreshSegs);
@@ -244,6 +278,7 @@
     if (id === '#modal-info') {
       $('#p-engine').textContent = S.settings.enginePath || t('notfound');
       $('#p-ffmpeg').textContent = S.settings.ffmpegPath || t('notfound');
+      $('#check-updates').checked = S.settings.checkUpdates !== false;
     }
     m.hidden = false;
     gsap.fromTo(m, { opacity: 0 }, { opacity: 1, duration: D(0.2) });
@@ -531,6 +566,7 @@
     let label = t(`state.${it.state}`);
     if (it.state === 'running') {
       if (it.phase === 'finish') label = t('state.finish');
+      else if (it.phase === 'fit') label = t('state.fit');
       else if (it.progress != null) label += ` · ${Math.round(it.progress)}%`;
     }
     li.querySelector('.job-state').textContent = label;
@@ -659,6 +695,12 @@
       save({ autoMask: e.target.checked });
       onParamChange();
     });
+    $('#maxsize').addEventListener('change', (e) => {
+      const n = Math.max(0, Math.round(Number(e.target.value) || 0));
+      e.target.value = n || '';
+      save({ maxSize: n });
+      if (n && !S.settings.ffmpegPath) openModal('#modal-ffmpeg');
+    });
     $('#compare').addEventListener('change', (e) => save({ compare: e.target.checked }));
     $('#tiktok').addEventListener('change', (e) => {
       save({ tiktok: e.target.checked });
@@ -704,6 +746,8 @@
     $('#btn-adv').addEventListener('click', () => toggleAdv());
     $('#btn-preview').addEventListener('click', () => (S.pv.open ? closePreview() : openPreview()));
     $('#btn-info').addEventListener('click', () => openModal('#modal-info'));
+    $('#btn-update').addEventListener('click', installUpdate);
+    $('#check-updates').addEventListener('change', (e) => save({ checkUpdates: e.target.checked }));
     $('#status').addEventListener('click', () => openModal(S.settings.enginePath ? '#modal-info' : '#modal-engine'));
     $('#m-close').addEventListener('click', () => closeModal('#modal-info'));
     $('#m-notiktok').addEventListener('click', () => {
@@ -872,6 +916,7 @@
       if (document.fonts && document.fonts.ready) document.fonts.ready.then(refreshSegs);
       if (S.settings.advancedOpen) setTimeout(() => toggleAdv(true), D(500));
       if (!S.settings.enginePath) setTimeout(() => openModal('#modal-engine'), D(800));
+      setTimeout(checkUpdate, D(1500));
     } catch (err) {
       console.error(err);
       $('#app').style.visibility = 'visible';

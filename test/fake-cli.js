@@ -42,6 +42,7 @@ const timer = setInterval(() => {
     if (fs.existsSync(target)) fail('Le fichier existe déjà', 1);
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, isImage ? 'png-result' : input); // le contenu rappelle l'entrée : le faux ffmpeg y lit les fps
+    if (process.env.FAKE_OUT_BYTES) fs.truncateSync(target, Number(process.env.FAKE_OUT_BYTES)); // fichier creux : une taille sans écrire les octets
     console.log(JSON.stringify({ ok: true, items: [{ input_path: input, output_path: target, state: 'complete' }] }));
   }
 }, Number(process.env.FAKE_STEP_MS || 20));

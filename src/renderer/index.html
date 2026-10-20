@@ -33,6 +33,7 @@
           <button role="radio" data-v="fr">FR</button>
         </div>
         <i class="sep"></i>
+        <button class="chip upd" id="btn-update" hidden><svg viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14"/></svg><span id="upd-label"></span></button>
         <span class="rec-chip" id="rec" hidden><i></i><b id="rec-tc">00:00:00:00</b></span>
         <button class="status" id="status" data-i18n-tip="tip.status"><i></i><span data-i18n="status.missing"></span></button>
         <button class="icon" id="btn-info" data-i18n-tip="tip.info" data-i18n-aria="tip.info">
@@ -134,6 +135,9 @@
                 <button role="radio" data-v="max" data-i18n="q.max"></button>
               </div>
             </div>
+            <label class="field num" data-i18n-tip="tip.maxsize">
+              <span data-i18n="adv.maxsize"></span><input type="number" id="maxsize" min="0" max="100000" step="1" inputmode="numeric" data-i18n-ph="adv.maxsizeOff"><em>MB</em>
+            </label>
             <label class="switch" data-i18n-tip="tip.mask">
               <input type="checkbox" id="automask"><i></i><span data-i18n="adv.mask"></span>
             </label>
@@ -204,6 +208,7 @@
         <div><span data-i18n="about.engine"></span><code id="p-engine">—</code><button class="ghost sm" data-pick="engine" data-i18n="about.change"></button></div>
         <div><span>ffmpeg</span><code id="p-ffmpeg">—</code><button class="ghost sm" data-pick="ffmpeg" data-i18n="about.change"></button></div>
       </div>
+      <label class="switch" data-i18n-tip="tip.updates"><input type="checkbox" id="check-updates"><i></i><span data-i18n="about.updates"></span></label>
       <p class="small" data-i18n="about.disclaimer"></p>
       <div class="card-actions"><button class="primary" id="m-close" data-i18n="close"></button></div>
     </div>
