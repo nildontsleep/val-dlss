@@ -294,6 +294,18 @@ input[type="range"]:hover::-webkit-slider-thumb { box-shadow: 0 0 0 7px rgba(94,
 .cmp-handle i::before, .cmp-handle i::after { content: ""; position: absolute; top: 50%; width: 6px; height: 6px; border: solid var(--on-accent); border-width: 2px 2px 0 0; margin-top: -3px; }
 .cmp-handle i::before { left: 9px; transform: rotate(-135deg); }
 .cmp-handle i::after { right: 9px; transform: rotate(45deg); }
+#pv-grid.on { color: #fff; background: rgba(94, 156, 255, 0.18); border-color: rgba(94, 156, 255, 0.45); }
+.tiles { position: relative; flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.tile { position: relative; min-width: 0; border-radius: var(--radius-lg); overflow: hidden; background: #000; border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); cursor: pointer; padding: 0; transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s; }
+.tile:hover { transform: translateY(-2px); border-color: var(--border-strong); }
+.tile.sel { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(94, 156, 255, 0.35), 0 20px 60px rgba(0, 0, 0, 0.5); }
+.tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tile img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; -webkit-user-drag: none; opacity: 0; transition: opacity 0.35s; }
+.tile img[src] { opacity: 1; }
+.tile.loading img { opacity: 0.3; }
+.tile .spin { position: absolute; left: 50%; top: 50%; margin: -7px 0 0 -7px; opacity: 0; transition: opacity 0.2s; }
+.tile.loading .spin { opacity: 1; }
+.tile.failed::after { content: "×"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 40px; color: var(--err); }
 .cmp-load { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-radius: 999px; background: rgba(8, 11, 15, 0.85); backdrop-filter: blur(10px); border: 1px solid var(--border-strong); font-family: var(--mono); font-size: 11.5px; color: var(--text-dim); opacity: 0; visibility: hidden; pointer-events: none; }
 .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border-strong); border-top-color: var(--accent); animation: spin-self 0.8s linear infinite; }
 .cmp-err { position: absolute; inset: auto 16px 16px; margin: 0; padding: 10px 14px; border-radius: 14px; background: rgba(255, 138, 138, 0.12); border: 1px solid rgba(255, 138, 138, 0.3); color: var(--err); font-size: 12.5px; user-select: text; }

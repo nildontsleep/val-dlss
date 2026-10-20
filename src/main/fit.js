@@ -32,7 +32,7 @@ async function fitFile({ ffmpeg, prefix = [], file, maxMB, track, isCancelled = 
   const sizeBytes = fs.statSync(file).size;
   const plan = planFit({ sizeBytes, durationSec, maxMB, audioKbps: parseAudioKbps(probe), floorKbps });
   if (plan.action === 'keep') return { status: 'kept' };
-  if (plan.action === 'floor') return { status: 'floor', neededMbps: Math.round(plan.neededKbps / 1000) };
+  if (plan.action === 'floor') return { status: 'floor', neededMbps: Math.round(plan.neededKbps / 100) / 10 };
   if (isCancelled()) return { status: 'kept' };
 
   const k = plan.videoKbps;

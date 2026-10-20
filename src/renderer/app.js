@@ -30,7 +30,7 @@
     defaultOut: '',
     update: null,
     advOpen: false,
-    pv: { open: false, idx: 0, time: 0, duration: 0, token: 0, timer: null },
+    pv: { open: false, idx: 0, time: 0, duration: 0, token: 0, timer: null, grid: false },
   };
   const cards = new Map();
   const early = [];
@@ -154,12 +154,13 @@
   }
 
   // Appelée après chaque changement de réglage de rendu.
-  function onParamChange() {
+  function onParamChange({ skipPreview = false } = {}) {
     const match = allPresets().find((p) => sameValues(p.values, currentValues()));
     save({ activePreset: match ? match.id : '' });
     syncPresetUI();
     syncAdvIndicator();
-    if (S.pv.open) schedulePreview(500);
+    paintTiles();
+    if (S.pv.open && !skipPreview) schedulePreview(500);
   }
 
   function applyValues(values) {
@@ -211,6 +212,7 @@
     setRunButton();
     updateVF();
     paintUpdate();
+    paintTiles();
     for (const it of S.items) paintCard(it);
     if (persist) save({ lang: window.I18N.lang });
     requestAnimationFrame(refreshSegs);
@@ -376,10 +378,64 @@
     S.pv.timer = setTimeout(refreshPreview, delay);
   }
 
+  /* ---------- les 3 styles côte à côte ---------- */
+  const tiles = () => [...document.querySelectorAll('#tiles .tile')];
+  function paintTiles() {
+    for (const tile of tiles()) {
+      tile.querySelector('.cmp-tag').textContent = t('preview.style', { n: tile.dataset.style });
+      tile.classList.toggle('sel', Number(tile.dataset.style) === S.settings.style);
+    }
+  }
+  function setGrid(on) {
+    S.pv.grid = on;
+    $('#cmp').hidden = on;
+    $('#tiles').hidden = !on;
+    $('#pv-grid').classList.toggle('on', on);
+    $('#pv-grid').setAttribute('aria-pressed', String(on));
+    paintTiles();
+    if (S.pv.open) refreshPreview();
+  }
+  function showGridError(text) {
+    const el = $('#tiles-err');
+    el.hidden = !text;
+    el.textContent = text || '';
+  }
+  async function refreshGrid(clip, token) {
+    showGridError('');
+    for (const tile of tiles()) tile.classList.remove('failed');
+    for (const tile of tiles()) tile.classList.add('loading');
+    const options = {};
+    for (const k of OPTION_KEYS) options[k] = S.settings[k];
+    const r = await window.api.preview({ file: clip.path, time: S.pv.time, options, grid: true, id: token });
+    if (token !== S.pv.token || !S.pv.open || !S.pv.grid || r.cancelled) return;
+    for (const tile of tiles()) tile.classList.remove('loading');
+    if (r.ok) return void ($('#cmp-before').src = r.before);
+    if (r.error === 'ffmpeg') {
+      closePreview();
+      openModal('#modal-ffmpeg');
+    } else if (r.error === 'engine') {
+      closePreview();
+      openModal('#modal-engine');
+    } else if (r.error === 'preset') {
+      showGridError(t('toast.preset', { detail: r.detail || '' }));
+    } else if (r.error !== 'busy') {
+      showGridError(t(`err.${r.error === 'render' ? 'render' : 'extract'}`, { detail: r.detail || '' }));
+    }
+  }
+  function onTile(d) {
+    if (d.id !== S.pv.token || !S.pv.open || !S.pv.grid) return;
+    const tile = document.querySelector(`#tiles .tile[data-style="${d.style}"]`);
+    if (!tile) return;
+    tile.classList.remove('loading');
+    tile.classList.toggle('failed', !d.after);
+    if (d.after) tile.querySelector('img').src = d.after;
+  }
+
   async function refreshPreview() {
     const clip = S.inputs[S.pv.idx];
     if (!clip) return;
     const token = ++S.pv.token;
+    if (S.pv.grid) return refreshGrid(clip, token);
     showLoader(true);
     const options = {};
     for (const k of OPTION_KEYS) options[k] = S.settings[k];
@@ -447,6 +503,13 @@
     if (!S.pv.open) return;
     S.pv.open = false;
     S.pv.token++;
+    if (S.pv.grid) {
+      S.pv.grid = false;
+      $('#cmp').hidden = false;
+      $('#tiles').hidden = true;
+      $('#pv-grid').classList.remove('on');
+      $('#pv-grid').setAttribute('aria-pressed', 'false');
+    }
     clearTimeout(S.pv.timer);
     document.body.classList.remove('previewing');
     $('#preview').hidden = true;
@@ -479,6 +542,15 @@
     });
     $('#pv-slider').addEventListener('change', () => schedulePreview(150));
     $('#pv-back').addEventListener('click', closePreview);
+    $('#pv-grid').addEventListener('click', () => setGrid(!S.pv.grid));
+    window.api.onPreviewTile(onTile);
+    for (const tile of tiles()) {
+      tile.addEventListener('click', () => {
+        const n = tile.dataset.style;
+        setGrid(false);
+        $(`#style [data-v="${n}"]`).click();
+      });
+    }
     $('#pv-prev').addEventListener('click', () => loadPreviewClip(S.pv.idx - 1));
     $('#pv-next').addEventListener('click', () => loadPreviewClip(S.pv.idx + 1));
   }
@@ -712,7 +784,7 @@
         if (!b) return;
         save({ [key]: cast(b.dataset.v) });
         setSeg(sel, b.dataset.v, true);
-        onParamChange();
+        onParamChange({ skipPreview: sel === '#style' && S.pv.grid }); // les trois styles sont déjà affichés
       });
     }
     $('#lang').addEventListener('click', (e) => {

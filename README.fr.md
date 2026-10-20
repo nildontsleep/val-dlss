@@ -16,11 +16,12 @@ C'est une interface simple pour le moteur de Neural Rendering de [Visual Enhance
 
 - **Dépose et lance** : glisse des clips, choisis un style (0, 1 ou 2) et une intensité, appuie sur Lancer.
 - **Comparer** : un export par style, rangés dans des sous-dossiers.
-- **Aperçu d'une frame** (👁) : original / résultat avec un curseur de comparaison et une timeline pour choisir la frame ; il se met à jour quand tu changes un réglage.
+- **Aperçu d'une frame** (👁) : original / résultat avec un curseur de comparaison et une timeline pour choisir la frame ; il se met à jour quand tu changes un réglage. **3 styles** affiche les styles 0, 1 et 2 de la même frame côte à côte ; clique sur l'un pour l'utiliser.
 - **Réglages avancés et presets** (⚙) : Tonalité, Détails, Peau, Passes, Masque auto et qualité d'encodage, plus tes propres presets.
+- **Plafond de taille optionnel** qui ne sacrifie jamais la qualité : un export n'est ré-encodé pour tenir dedans que si ça reste à 60 Mb/s ou plus (voir plus bas).
 - **Méthode qualité TikTok** de **paschafps** : réécrit les timestamps sans ré-encoder, pour des clips en 60, 120 ou 240 fps.
 - **Anglais et français** (sélecteur EN | FR, mémorisé).
-- **100 % local** : aucun appel réseau, aucune télémétrie, aucun compte.
+- **100 % local** : tes clips ne quittent jamais ta machine, aucune télémétrie, aucun compte. Le seul appel réseau est une vérification de mise à jour optionnelle au lancement (voir [Mises à jour](#mises-à-jour)).
 
 | En cours | Réglages avancés |
 | --- | --- |
@@ -60,10 +61,21 @@ Tes réglages sont dans `%APPDATA%\Valorant DLSS\settings.json` ; les fichiers t
 | Passes | Nombre de fois que la passe neurale est appliquée (1 à 3) |
 | Masque auto | Le masque automatique du moteur (désactivé par défaut dans Visual Enhancer) |
 | Qualité | Qualité d'encodage du fichier exporté |
+| Taille max | Plafond optionnel en Mo pour le fichier exporté (vide = désactivé), voir plus bas |
 
 Les valeurs avancées sont transmises à Visual Enhancer par un fichier preset que l'app écrit au format du moteur, et validé avec `--dry-run` avant chaque rendu : un preset refusé est signalé au lieu d'être ignoré en silence. Si ta version de Visual Enhancer est plus ancienne et refuse la dernière `schema_version` du preset, l'app essaie des versions plus anciennes. Le preset n'est écrit que si une valeur s'écarte des valeurs par défaut de Visual Enhancer.
 
 **Aperçu.** L'aperçu extrait une frame avec FFmpeg et la rend dans le pipeline *image* de Visual Enhancer. Une frame n'a pas de mouvement (pas de flux optique) : la vidéo finale peut légèrement différer.
+
+### Taille max, sans perdre en qualité
+
+Les exports doivent rester vers **60 Mb/s ou plus** : le plafond est donc une limite protégée par un plancher, pas un objectif à atteindre.
+
+- Si le rendu est déjà sous le plafond, rien ne se passe.
+- S'il le dépasse, et que tenir dedans demande **60 Mb/s ou plus**, l'app ré-encode la vidéo avec ta carte graphique (H.264 NVENC, audio copié) pour tenir dedans.
+- Si tenir dedans demande **moins de 60 Mb/s**, l'app **garde le rendu tel quel** et t'indique ce qu'il aurait fallu. Elle ne dégrade jamais la qualité sous le plancher pour atteindre un chiffre.
+
+La taille est en Mo décimaux (comme Discord et la plupart des sites) avec une petite marge de sécurité. Pour repère, 60 Mb/s font environ 7,5 Mo par seconde de vidéo : un clip de 10 s pèse déjà ~75 Mo, donc un plafond de 10 ou 25 Mo n'est atteignable que pour de très courts clips. Le ré-encodage est une seconde passe avec perte et demande une carte NVIDIA avec NVENC ; avec la méthode TikTok, le plafond passe d'abord et l'étape TikTok ne fait que copier les flux.
 
 ### Méthode qualité TikTok
 
@@ -72,6 +84,15 @@ Les valeurs avancées sont transmises à Visual Enhancer par un fichier preset q
 - Le fichier `_tiktok.mp4` obtenu est **ralenti** (×2, ×6 ou ×12) : ce n'est pas un fichier à regarder tel quel.
 - Si les fps ne sont pas 60, 120 ou 240, ou si FFmpeg échoue, le rendu Neural Rendering est conservé tel quel et l'app l'indique.
 - L'effet de cette méthode sur la qualité côté TikTok n'a pas été mesuré ici ; l'app reproduit la commande du script, rien de plus. Désactive « TikTok » pour obtenir un fichier à vitesse normale.
+
+## Mises à jour
+
+Au lancement, l'app fait **une seule** requête vers l'API publique des Releases GitHub de ce dépôt (sans compte, sans identifiant, sans télémétrie) pour savoir si une version plus récente existe. Si oui, un bouton **Mettre à jour** apparaît dans la barre du haut. Rien ne se passe tant que tu n'as pas cliqué :
+
+- **Version installée** : le nouvel installeur est téléchargé, son **SHA-256 est comparé à celui que GitHub publie pour le fichier**, puis seulement lancé. Le fichier est refusé au moindre écart.
+- **Version portable** : le bouton ouvre la page des Releases.
+
+Tu peux désactiver la vérification dans **À propos** (ⓘ) → *Chercher les mises à jour au lancement*. Rien ne tourne en arrière-plan et il n'y a pas d'icône dans la zone de notification.
 
 ## Politique de support
 
@@ -133,7 +154,7 @@ npm run dist:installer   # installeur NSIS dans dist/installer/ (télécharge et
 
 La CI utilise Node.js 22. Les tests n'ont besoin ni d'un GPU ni de Windows.
 
-La CI ([`build.yml`](.github/workflows/build.yml)) teste et construit sur `windows-latest`. Pour publier l'exécutable en Release, pousse un tag `v*` (`git tag v0.4.0 && git push origin v0.4.0`) ou lance manuellement le workflow **build** depuis l'onglet *Actions* en renseignant `release_tag` (par exemple `v0.4.0`).
+La CI ([`build.yml`](.github/workflows/build.yml)) teste et construit sur `windows-latest`. Pour publier l'exécutable en Release, pousse un tag `v*` (`git tag v0.5.0 && git push origin v0.5.0`) ou lance manuellement le workflow **build** depuis l'onglet *Actions* en renseignant `release_tag` (par exemple `v0.5.0`).
 
 ## Avertissements
 

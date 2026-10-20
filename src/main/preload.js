@@ -27,4 +27,5 @@ contextBridge.exposeInMainWorld('api', {
   onJob: listen('job:update'),
   onFinished: listen('run:finished'),
   onUpdateProgress: listen('update:progress'),
+  onPreviewTile: listen('preview:tile'),
 });

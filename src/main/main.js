@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { Store } = require('./store');
 const { Engine, ENGINE_EXE, findEngine, autodetect, killTree, validatePreset } = require('./engine');
-const { sanitizeOptions, sanitizePresets, buildJobs, LANGS } = require('./args');
+const { sanitizeOptions, sanitizePresets, buildJobs, LANGS, STYLES } = require('./args');
 const { findFfmpegIn, findFfmpegOnPath, checkFfmpeg } = require('./tiktok');
 const { bundledFfmpeg, pickFfmpeg } = require('./ffmpeg-path');
 const { needsPreset, buildPreset, SCHEMA_CANDIDATES } = require('./vepreset');
@@ -207,15 +207,33 @@ function register() {
           if (!prep.ok) return { ok: false, error: 'preset', detail: prep.detail };
         }
       }
-      const out = uniqueName(tmp, 'result', '.png');
-      const r = await renderFrame({ exe: path.join(dir, ENGINE_EXE), input: frameCache.path, out, style: options.style, strength: options.strength, presetPath, track });
-      if (token.cancelled) {
+      const renderStyle = async (style) => {
+        const out = uniqueName(tmp, 'result', '.png');
+        const r = await renderFrame({ exe: path.join(dir, ENGINE_EXE), input: frameCache.path, out, style, strength: options.strength, presetPath, track });
+        const after = r.ok && !token.cancelled ? dataUrl(out) : null;
         fs.rmSync(out, { force: true });
-        return { ok: false, cancelled: true };
+        return { r, after };
+      };
+
+      if (req.grid === true) {
+        // Les trois styles de la même frame, l'un après l'autre : chaque tuile part dès qu'elle est prête.
+        let okCount = 0;
+        let detail = '';
+        for (const style of STYLES) {
+          const { r, after } = await renderStyle(style);
+          if (token.cancelled) return { ok: false, cancelled: true };
+          if (r.ok) okCount++;
+          else detail = detail || r.detail;
+          send('preview:tile', { id: req.id, style, after, detail: r.ok ? '' : r.detail });
+        }
+        if (!okCount) return { ok: false, error: 'render', detail };
+        return { ok: true, grid: true, before: dataUrl(frameCache.path) };
       }
+
+      const { r, after } = await renderStyle(options.style);
+      if (token.cancelled) return { ok: false, cancelled: true };
       if (!r.ok) return { ok: false, error: 'render', detail: r.detail };
-      result = { ok: true, before: dataUrl(frameCache.path), after: dataUrl(out) };
-      fs.rmSync(out, { force: true });
+      result = { ok: true, before: dataUrl(frameCache.path), after };
       return result;
     } finally {
       if (previewRun === token) previewRun = null;
