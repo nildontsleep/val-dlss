@@ -1,16 +1,18 @@
 'use strict';
 const { app, BrowserWindow, Menu, ipcMain, dialog, shell, session } = require('electron');
+const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 const { Store } = require('./store');
 const { Engine, ENGINE_EXE, findEngine, autodetect, killTree, validatePreset } = require('./engine');
-const { sanitizeOptions, sanitizePresets, buildJobs, LANGS } = require('./args');
+const { sanitizeOptions, sanitizePresets, buildJobs, LANGS, STYLES } = require('./args');
 const { findFfmpegIn, findFfmpegOnPath, checkFfmpeg } = require('./tiktok');
 const { bundledFfmpeg, pickFfmpeg } = require('./ffmpeg-path');
 const { needsPreset, buildPreset, SCHEMA_CANDIDATES } = require('./vepreset');
 const { probeDuration, extractFrame, renderFrame, uniqueName, dataUrl } = require('./preview');
 const { dialogText } = require('./strings');
 const { VIDEO, isVideo } = require('./media');
+const { checkForUpdate, downloadAsset, PAGE_PREFIX } = require('./updater');
 
 const RELEASES_URL = 'https://github.com/Merserk/dlss5-visual-enhancer/releases';
 const FFMPEG_URL = 'https://www.gyan.dev/ffmpeg/builds/';
@@ -23,6 +25,10 @@ let previewRun = null; // aperçu en cours : { cancelled, cancel }
 let frameCache = null; // dernière frame extraite : { key, path }
 let schemaVerified = false; // le schema_version du preset a déjà été accepté par ce Visual Enhancer
 const openableDirs = new Set(); // dossiers de sortie que l'interface a le droit d'ouvrir
+let pendingUpdate = null; // dernière mise à jour trouvée : { version, page, asset }
+let updating = false;
+// Version installée (NSIS) : l'installeur peut se remplacer ; la version portable renvoie vers la page de la release.
+const isInstalled = () => app.isPackaged && !process.env.PORTABLE_EXECUTABLE_FILE;
 
 const defaultOutputDir = () => path.join(app.getPath('videos'), 'Valorant DLSS');
 const previewDir = () => path.join(app.getPath('temp'), 'valorant-dlss');
@@ -106,6 +112,7 @@ function register() {
     for (const k of Object.keys(o)) if (k in patch) clean[k] = o[k];
     if (LANGS.includes(patch.lang)) clean.lang = patch.lang;
     if (typeof patch.advancedOpen === 'boolean') clean.advancedOpen = patch.advancedOpen;
+    if (typeof patch.checkUpdates === 'boolean') clean.checkUpdates = patch.checkUpdates;
     if ('presets' in patch) clean.presets = sanitizePresets(patch.presets);
     if (typeof patch.activePreset === 'string' && patch.activePreset.length <= 40) clean.activePreset = patch.activePreset;
     return store.set(clean);
@@ -200,15 +207,33 @@ function register() {
           if (!prep.ok) return { ok: false, error: 'preset', detail: prep.detail };
         }
       }
-      const out = uniqueName(tmp, 'result', '.png');
-      const r = await renderFrame({ exe: path.join(dir, ENGINE_EXE), input: frameCache.path, out, style: options.style, strength: options.strength, presetPath, track });
-      if (token.cancelled) {
+      const renderStyle = async (style) => {
+        const out = uniqueName(tmp, 'result', '.png');
+        const r = await renderFrame({ exe: path.join(dir, ENGINE_EXE), input: frameCache.path, out, style, strength: options.strength, presetPath, track });
+        const after = r.ok && !token.cancelled ? dataUrl(out) : null;
         fs.rmSync(out, { force: true });
-        return { ok: false, cancelled: true };
+        return { r, after };
+      };
+
+      if (req.grid === true) {
+        // Les trois styles de la même frame, l'un après l'autre : chaque tuile part dès qu'elle est prête.
+        let okCount = 0;
+        let detail = '';
+        for (const style of STYLES) {
+          const { r, after } = await renderStyle(style);
+          if (token.cancelled) return { ok: false, cancelled: true };
+          if (r.ok) okCount++;
+          else detail = detail || r.detail;
+          send('preview:tile', { id: req.id, style, after, detail: r.ok ? '' : r.detail });
+        }
+        if (!okCount) return { ok: false, error: 'render', detail };
+        return { ok: true, grid: true, before: dataUrl(frameCache.path) };
       }
+
+      const { r, after } = await renderStyle(options.style);
+      if (token.cancelled) return { ok: false, cancelled: true };
       if (!r.ok) return { ok: false, error: 'render', detail: r.detail };
-      result = { ok: true, before: dataUrl(frameCache.path), after: dataUrl(out) };
-      fs.rmSync(out, { force: true });
+      result = { ok: true, before: dataUrl(frameCache.path), after };
       return result;
     } finally {
       if (previewRun === token) previewRun = null;
@@ -223,7 +248,7 @@ function register() {
       const dir = findEngine(settings.enginePath);
       if (!dir) return { ok: false, error: 'engine' };
       const options = sanitizeOptions({ ...settings, ...payload.options });
-      if (options.tiktok && !ffmpegReady(settings)) return { ok: false, error: 'ffmpeg' };
+      if ((options.tiktok || options.maxSize) && !ffmpegReady(settings)) return { ok: false, error: 'ffmpeg' };
       const files = (Array.isArray(payload.files) ? payload.files : []).filter((f) => typeof f === 'string' && isVideo(f) && fs.existsSync(f));
       if (!files.length) return { ok: false, error: 'no-files' };
       if (previewRun) previewRun.cancel();
@@ -261,6 +286,38 @@ function register() {
     const resolved = path.resolve(dir);
     if (openableDirs.has(resolved) && fs.existsSync(resolved)) shell.openPath(resolved);
   });
+  // Une seule requête au lancement, désactivable dans « À propos ». Jamais en développement.
+  ipcMain.handle('update:check', async () => {
+    if (!app.isPackaged || !store.get().checkUpdates) return { ok: true, update: null };
+    const r = await checkForUpdate({ current: app.getVersion(), installed: isInstalled() });
+    pendingUpdate = r.ok ? r.update : null;
+    return r.ok
+      ? { ok: true, update: pendingUpdate && { version: pendingUpdate.version, direct: isInstalled() && !!pendingUpdate.asset } }
+      : { ok: false };
+  });
+
+  // L'interface ne fournit aucune URL : on n'utilise que la mise à jour trouvée par `update:check`.
+  ipcMain.handle('update:install', async () => {
+    if (!pendingUpdate || updating) return { ok: false, error: 'none' };
+    if (!isInstalled() || !pendingUpdate.asset) {
+      if (pendingUpdate.page.startsWith(PAGE_PREFIX)) shell.openExternal(pendingUpdate.page);
+      return { ok: true, opened: true };
+    }
+    if (current || starting) return { ok: false, error: 'busy' };
+    updating = true;
+    try {
+      const dir = path.join(app.getPath('temp'), 'valorant-dlss-update');
+      const r = await downloadAsset({ asset: pendingUpdate.asset, dir, onProgress: (p) => send('update:progress', p) });
+      if (!r.ok) return { ok: false, error: r.error };
+      if (current || starting) return { ok: false, error: 'busy' };
+      spawn(r.path, [], { detached: true, stdio: 'ignore' }).unref();
+      app.quit();
+      return { ok: true };
+    } finally {
+      updating = false;
+    }
+  });
+
   ipcMain.handle('shell:link', (_e, which) => shell.openExternal(which === 'ffmpeg' ? FFMPEG_URL : RELEASES_URL));
 }
 
@@ -284,6 +341,7 @@ if (!gotLock) {
       outputDir: '',
       lang: 'en',
       advancedOpen: false,
+      checkUpdates: true,
       presets: [],
       activePreset: 'default',
       presetSchema: SCHEMA_CANDIDATES[0],

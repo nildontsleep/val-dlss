@@ -21,7 +21,11 @@ contextBridge.exposeInMainWorld('api', {
   cancel: invoke('jobs:cancel'),
   openFolder: invoke('shell:openFolder'),
   openLink: invoke('shell:link'),
+  checkUpdate: invoke('update:check'),
+  installUpdate: invoke('update:install'),
   pathForFile: (file) => webUtils.getPathForFile(file),
   onJob: listen('job:update'),
   onFinished: listen('run:finished'),
+  onUpdateProgress: listen('update:progress'),
+  onPreviewTile: listen('preview:tile'),
 });

@@ -2,7 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-// Réglages persistés dans un JSON local (userData). Aucune télémétrie, aucun réseau.
+// Réglages persistés dans un JSON local (userData). Aucune télémétrie.
 class Store {
   constructor(file, defaults) {
     this.file = file;

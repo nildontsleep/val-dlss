@@ -15,7 +15,7 @@
   };
   const fmtTime = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
-  const OPTION_KEYS = ['style', 'strength', 'compare', 'tiktok', 'tone', 'structure', 'skin', 'passes', 'autoMask', 'quality'];
+  const OPTION_KEYS = ['style', 'strength', 'compare', 'tiktok', 'tone', 'structure', 'skin', 'passes', 'autoMask', 'quality', 'maxSize'];
   const PRESET_KEYS = ['style', 'strength', 'tone', 'structure', 'skin', 'passes', 'autoMask', 'quality'];
   const DEFAULTS = { style: 2, strength: 1, tone: 1, structure: 1, skin: 1, passes: 1, autoMask: false, quality: 'best' };
   const ADV_KEYS = ['tone', 'structure', 'skin', 'passes', 'autoMask', 'quality'];
@@ -28,8 +28,9 @@
     view: 'inputs',
     running: false,
     defaultOut: '',
+    update: null,
     advOpen: false,
-    pv: { open: false, idx: 0, time: 0, duration: 0, token: 0, timer: null },
+    pv: { open: false, idx: 0, time: 0, duration: 0, token: 0, timer: null, grid: false },
   };
   const cards = new Map();
   const early = [];
@@ -145,6 +146,7 @@
     $('#compare').checked = !!s.compare;
     $('#tiktok').checked = s.tiktok !== false;
     $('#automask').checked = !!s.autoMask;
+    $('#maxsize').value = s.maxSize > 0 ? s.maxSize : '';
     $('#out-name').textContent = basename(s.outputDir || S.defaultOut) || 'Valorant DLSS';
     syncStatus();
     syncPresetUI();
@@ -152,12 +154,13 @@
   }
 
   // Appelée après chaque changement de réglage de rendu.
-  function onParamChange() {
+  function onParamChange({ skipPreview = false } = {}) {
     const match = allPresets().find((p) => sameValues(p.values, currentValues()));
     save({ activePreset: match ? match.id : '' });
     syncPresetUI();
     syncAdvIndicator();
-    if (S.pv.open) schedulePreview(500);
+    paintTiles();
+    if (S.pv.open && !skipPreview) schedulePreview(500);
   }
 
   function applyValues(values) {
@@ -166,6 +169,37 @@
     refreshSegs();
     syncAdvIndicator();
     if (S.pv.open) schedulePreview(300);
+  }
+
+  /* ---------- mise à jour ---------- */
+  function paintUpdate(progress = null) {
+    const u = S.update;
+    const b = $('#btn-update');
+    b.hidden = !u;
+    if (!u) return;
+    $('#upd-label').textContent = progress === null ? t('update.btn', { v: u.version }) : t('update.downloading', { p: progress });
+    b.dataset.tip = t(u.direct ? 'update.tip' : 'update.tipPage', { v: u.version });
+    b.disabled = progress !== null;
+  }
+  async function checkUpdate() {
+    try {
+      const r = await window.api.checkUpdate();
+      if (!r.ok || !r.update) return;
+      S.update = r.update;
+      paintUpdate();
+      gsap.from('#btn-update', { opacity: 0, scale: 0.85, duration: D(0.5), ease: 'back.out(2)' });
+    } catch {
+      /* hors ligne : on continue sans */
+    }
+  }
+  async function installUpdate() {
+    paintUpdate(0);
+    const off = window.api.onUpdateProgress((p) => paintUpdate(p));
+    const r = await window.api.installUpdate();
+    off();
+    if (r.ok) return paintUpdate(null);
+    paintUpdate(null);
+    toast(r.error === 'busy' ? t('toast.updateBusy') : t('toast.updateFail', { detail: r.error || '?' }));
   }
 
   /* ---------- langue ---------- */
@@ -177,6 +211,8 @@
     syncPresetUI();
     setRunButton();
     updateVF();
+    paintUpdate();
+    paintTiles();
     for (const it of S.items) paintCard(it);
     if (persist) save({ lang: window.I18N.lang });
     requestAnimationFrame(refreshSegs);
@@ -244,6 +280,7 @@
     if (id === '#modal-info') {
       $('#p-engine').textContent = S.settings.enginePath || t('notfound');
       $('#p-ffmpeg').textContent = S.settings.ffmpegPath || t('notfound');
+      $('#check-updates').checked = S.settings.checkUpdates !== false;
     }
     m.hidden = false;
     gsap.fromTo(m, { opacity: 0 }, { opacity: 1, duration: D(0.2) });
@@ -341,10 +378,64 @@
     S.pv.timer = setTimeout(refreshPreview, delay);
   }
 
+  /* ---------- les 3 styles côte à côte ---------- */
+  const tiles = () => [...document.querySelectorAll('#tiles .tile')];
+  function paintTiles() {
+    for (const tile of tiles()) {
+      tile.querySelector('.cmp-tag').textContent = t('preview.style', { n: tile.dataset.style });
+      tile.classList.toggle('sel', Number(tile.dataset.style) === S.settings.style);
+    }
+  }
+  function setGrid(on) {
+    S.pv.grid = on;
+    $('#cmp').hidden = on;
+    $('#tiles').hidden = !on;
+    $('#pv-grid').classList.toggle('on', on);
+    $('#pv-grid').setAttribute('aria-pressed', String(on));
+    paintTiles();
+    if (S.pv.open) refreshPreview();
+  }
+  function showGridError(text) {
+    const el = $('#tiles-err');
+    el.hidden = !text;
+    el.textContent = text || '';
+  }
+  async function refreshGrid(clip, token) {
+    showGridError('');
+    for (const tile of tiles()) tile.classList.remove('failed');
+    for (const tile of tiles()) tile.classList.add('loading');
+    const options = {};
+    for (const k of OPTION_KEYS) options[k] = S.settings[k];
+    const r = await window.api.preview({ file: clip.path, time: S.pv.time, options, grid: true, id: token });
+    if (token !== S.pv.token || !S.pv.open || !S.pv.grid || r.cancelled) return;
+    for (const tile of tiles()) tile.classList.remove('loading');
+    if (r.ok) return void ($('#cmp-before').src = r.before);
+    if (r.error === 'ffmpeg') {
+      closePreview();
+      openModal('#modal-ffmpeg');
+    } else if (r.error === 'engine') {
+      closePreview();
+      openModal('#modal-engine');
+    } else if (r.error === 'preset') {
+      showGridError(t('toast.preset', { detail: r.detail || '' }));
+    } else if (r.error !== 'busy') {
+      showGridError(t(`err.${r.error === 'render' ? 'render' : 'extract'}`, { detail: r.detail || '' }));
+    }
+  }
+  function onTile(d) {
+    if (d.id !== S.pv.token || !S.pv.open || !S.pv.grid) return;
+    const tile = document.querySelector(`#tiles .tile[data-style="${d.style}"]`);
+    if (!tile) return;
+    tile.classList.remove('loading');
+    tile.classList.toggle('failed', !d.after);
+    if (d.after) tile.querySelector('img').src = d.after;
+  }
+
   async function refreshPreview() {
     const clip = S.inputs[S.pv.idx];
     if (!clip) return;
     const token = ++S.pv.token;
+    if (S.pv.grid) return refreshGrid(clip, token);
     showLoader(true);
     const options = {};
     for (const k of OPTION_KEYS) options[k] = S.settings[k];
@@ -412,6 +503,13 @@
     if (!S.pv.open) return;
     S.pv.open = false;
     S.pv.token++;
+    if (S.pv.grid) {
+      S.pv.grid = false;
+      $('#cmp').hidden = false;
+      $('#tiles').hidden = true;
+      $('#pv-grid').classList.remove('on');
+      $('#pv-grid').setAttribute('aria-pressed', 'false');
+    }
     clearTimeout(S.pv.timer);
     document.body.classList.remove('previewing');
     $('#preview').hidden = true;
@@ -444,6 +542,15 @@
     });
     $('#pv-slider').addEventListener('change', () => schedulePreview(150));
     $('#pv-back').addEventListener('click', closePreview);
+    $('#pv-grid').addEventListener('click', () => setGrid(!S.pv.grid));
+    window.api.onPreviewTile(onTile);
+    for (const tile of tiles()) {
+      tile.addEventListener('click', () => {
+        const n = tile.dataset.style;
+        setGrid(false);
+        $(`#style [data-v="${n}"]`).click();
+      });
+    }
     $('#pv-prev').addEventListener('click', () => loadPreviewClip(S.pv.idx - 1));
     $('#pv-next').addEventListener('click', () => loadPreviewClip(S.pv.idx + 1));
   }
@@ -531,6 +638,7 @@
     let label = t(`state.${it.state}`);
     if (it.state === 'running') {
       if (it.phase === 'finish') label = t('state.finish');
+      else if (it.phase === 'fit') label = t('state.fit');
       else if (it.progress != null) label += ` · ${Math.round(it.progress)}%`;
     }
     li.querySelector('.job-state').textContent = label;
@@ -659,6 +767,12 @@
       save({ autoMask: e.target.checked });
       onParamChange();
     });
+    $('#maxsize').addEventListener('change', (e) => {
+      const n = Math.max(0, Math.round(Number(e.target.value) || 0));
+      e.target.value = n || '';
+      save({ maxSize: n });
+      if (n && !S.settings.ffmpegPath) openModal('#modal-ffmpeg');
+    });
     $('#compare').addEventListener('change', (e) => save({ compare: e.target.checked }));
     $('#tiktok').addEventListener('change', (e) => {
       save({ tiktok: e.target.checked });
@@ -670,7 +784,7 @@
         if (!b) return;
         save({ [key]: cast(b.dataset.v) });
         setSeg(sel, b.dataset.v, true);
-        onParamChange();
+        onParamChange({ skipPreview: sel === '#style' && S.pv.grid }); // les trois styles sont déjà affichés
       });
     }
     $('#lang').addEventListener('click', (e) => {
@@ -704,6 +818,8 @@
     $('#btn-adv').addEventListener('click', () => toggleAdv());
     $('#btn-preview').addEventListener('click', () => (S.pv.open ? closePreview() : openPreview()));
     $('#btn-info').addEventListener('click', () => openModal('#modal-info'));
+    $('#btn-update').addEventListener('click', installUpdate);
+    $('#check-updates').addEventListener('change', (e) => save({ checkUpdates: e.target.checked }));
     $('#status').addEventListener('click', () => openModal(S.settings.enginePath ? '#modal-info' : '#modal-engine'));
     $('#m-close').addEventListener('click', () => closeModal('#modal-info'));
     $('#m-notiktok').addEventListener('click', () => {
@@ -872,6 +988,7 @@
       if (document.fonts && document.fonts.ready) document.fonts.ready.then(refreshSegs);
       if (S.settings.advancedOpen) setTimeout(() => toggleAdv(true), D(500));
       if (!S.settings.enginePath) setTimeout(() => openModal('#modal-engine'), D(800));
+      setTimeout(checkUpdate, D(1500));
     } catch (err) {
       console.error(err);
       $('#app').style.visibility = 'visible';

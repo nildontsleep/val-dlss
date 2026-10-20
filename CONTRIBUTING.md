@@ -23,7 +23,7 @@ documentation, design feedback and code. Please read the [Code of Conduct](CODE_
 
 - **Minimal.** The app does a few things and hides the rest. A setting nobody will ever use does not belong here.
   Before proposing an option, ask: who will change it, and how often?
-- **Local first.** No network calls, no telemetry, no accounts. The app only talks to programs on the user's machine.
+- **Local first.** No telemetry, no accounts, clips never leave the machine. The app talks to programs on the user's machine; the only network call is the optional update check at launch (`src/main/updater.js`, one GET to this repo's Releases API, off with one switch). Do not add others.
 - **Honest.** The UI and docs must not claim more than we have verified. If something is a guess, say so.
 - **Readable.** The look follows [morpheen.dev](https://morpheen.dev) (warm/blue near-black, serif italics, mono
   labels) but legibility comes first: contrast, sizes and clear labels.
@@ -123,8 +123,9 @@ documentation, retours de design et code. Lis d'abord le [Code de conduite](CODE
 
 - **Minimal.** L'app fait peu de choses et cache le reste. Un réglage que personne n'utilisera n'a pas sa place ici.
   Avant de proposer une option, demande-toi : qui va la changer, et à quelle fréquence ?
-- **Local d'abord.** Aucun appel réseau, aucune télémétrie, aucun compte. L'app ne parle qu'à des programmes présents
-  sur la machine de l'utilisateur.
+- **Local d'abord.** Aucune télémétrie, aucun compte, les clips ne quittent jamais la machine. L'app parle à des programmes
+  présents sur la machine ; le seul appel réseau est la vérification de mise à jour optionnelle au lancement
+  (`src/main/updater.js`, un GET vers l'API des Releases de ce dépôt, désactivable). N'en ajoute pas d'autres.
 - **Honnête.** L'interface et la doc ne doivent pas affirmer plus que ce qui est vérifié. Une supposition doit être
   présentée comme telle.
 - **Lisible.** Le style suit [morpheen.dev](https://morpheen.dev) (noir chaud/bleuté, italiques serif, étiquettes mono)

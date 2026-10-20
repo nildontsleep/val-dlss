@@ -16,11 +16,12 @@ It is a friendly front-end for the Neural Rendering engine of [Visual Enhancer](
 
 - **Drop and run**: drag clips in, choose a style (0, 1 or 2) and a strength, hit Run.
 - **Compare**: one export per style, in separate subfolders.
-- **Preview one frame** (👁): original vs result with a draggable divider and a timeline scrubber; it refreshes as you change settings.
+- **Preview one frame** (👁): original vs result with a draggable divider and a timeline scrubber; it refreshes as you change settings. **3 styles** shows styles 0, 1 and 2 of the same frame side by side; click one to use it.
 - **Advanced settings and presets** (⚙): Tone, Detail, Skin, Passes, Auto mask and encode quality, plus your own saved presets.
+- **Optional size cap** that never trades away quality: an export is only re-encoded to fit if that stays at 60 Mb/s or more (see below).
 - **TikTok quality method** by **paschafps**: rewrites timestamps without re-encoding, for 60, 120 or 240 fps clips.
 - **English and French** (EN | FR switch, remembered).
-- **100% local**: no network calls, no telemetry, no account.
+- **100% local**: your clips never leave your machine, no telemetry, no account. The only network call is one optional update check at launch (see [Updates](#updates)).
 
 | Running | Advanced settings |
 | --- | --- |
@@ -60,10 +61,21 @@ Your settings live in `%APPDATA%\Valorant DLSS\settings.json`; temporary preview
 | Passes | How many times the neural pass is applied (1 to 3) |
 | Auto mask | The engine's automatic mask (off by default in Visual Enhancer) |
 | Quality | Encoding quality of the exported file |
+| Max size | Optional size cap in MB for the exported file (empty = off), see below |
 
 Advanced values are sent to Visual Enhancer through a preset file the app writes in the engine's own format, and validated with `--dry-run` before every run: a rejected preset is reported instead of silently ignored. If your Visual Enhancer is older and refuses the newest preset `schema_version`, the app falls back to older ones. The preset is only written when a value differs from Visual Enhancer's defaults.
 
 **Preview.** The preview extracts one frame with FFmpeg and renders it through Visual Enhancer's *image* pipeline. One frame has no motion (no optical flow), so the final video can differ slightly.
+
+### Max size, without giving up quality
+
+Exports are meant to stay around **60 Mb/s or more**, so the cap works as a floor-protected limit rather than a target:
+
+- If the render is already under the cap, nothing happens.
+- If it is over, and fitting the cap needs **60 Mb/s or more**, the app re-encodes the video with your GPU (NVENC H.264, audio copied) to fit.
+- If fitting would need **less than 60 Mb/s**, the app **keeps the render as is** and tells you how much it would have needed. It never degrades the quality below the floor to hit a number.
+
+The size is in decimal MB (as Discord and most sites count it) with a small safety margin. As a reference, 60 Mb/s is about 7.5 MB per second of video: a 10 s clip is already ~75 MB, so a 10 or 25 MB cap is only reachable for very short clips. The re-encode is a second lossy pass and needs an NVIDIA GPU with NVENC; when the cap is applied together with the TikTok method, the cap comes first and the TikTok step only copies streams.
 
 ### TikTok quality method
 
@@ -72,6 +84,15 @@ Equivalent of `paschafps_TikTok_Quality_Method_v2.bat`: after the render, FFmpeg
 - The resulting `_tiktok.mp4` is **slowed down** (×2, ×6 or ×12): it is not a file to watch as is.
 - If the fps is not 60, 120 or 240, or FFmpeg fails, the Neural Rendering output is kept as is and the app says so.
 - The effect of this method on TikTok's quality has not been measured here; the app reproduces the script's command, nothing more. Turn "TikTok" off for a normal-speed file.
+
+## Updates
+
+At launch the app makes **one** request to this repository's public GitHub Releases API (no account, no identifier, no telemetry) to see if a newer version exists. If so, an **Update** button appears in the top bar. Nothing happens until you click it:
+
+- **Installer version**: the new installer is downloaded, its **SHA-256 is checked against the one GitHub publishes for the file**, and only then is it started. The file is refused if anything does not match.
+- **Portable version**: the button opens the Releases page.
+
+You can turn the check off in **About** (ⓘ) → *Check for updates at launch*. Nothing runs in the background and there is no system tray icon.
 
 ## Support policy
 
@@ -133,7 +154,7 @@ npm run dist:installer   # NSIS installer in dist/installer/ (downloads and chec
 
 Node.js 22 is used by CI. The tests need neither a GPU nor Windows.
 
-CI ([`build.yml`](.github/workflows/build.yml)) tests and builds on `windows-latest`. To publish the executable as a Release, either push a `v*` tag (`git tag v0.4.0 && git push origin v0.4.0`) or run the **build** workflow manually from the *Actions* tab and fill in `release_tag` (for example `v0.4.0`).
+CI ([`build.yml`](.github/workflows/build.yml)) tests and builds on `windows-latest`. To publish the executable as a Release, either push a `v*` tag (`git tag v0.5.0 && git push origin v0.5.0`) or run the **build** workflow manually from the *Actions* tab and fill in `release_tag` (for example `v0.5.0`).
 
 ## Disclaimers
 

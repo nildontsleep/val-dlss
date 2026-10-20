@@ -24,6 +24,7 @@ function sanitizeOptions(o = {}) {
     passes: Math.round(clamp(o.passes, 1, 3, 1)),
     autoMask: o.autoMask === true,
     quality: QUALITIES.includes(o.quality) ? o.quality : 'best',
+    maxSize: Math.round(clamp(o.maxSize, 0, 100000, 0)), // plafond en Mo, 0 = désactivé
   };
 }
 
@@ -71,7 +72,7 @@ function buildJobs({ files, options, outputDir, presetPath = null, idPrefix = St
         '-o', outDir,
       ];
       if (presetPath) args.push('--preset', presetPath);
-      jobs.push({ id, file, name: path.basename(file), stem, style, tiktok: o.tiktok, outDir, finalDir, args });
+      jobs.push({ id, file, name: path.basename(file), stem, style, tiktok: o.tiktok, maxMB: o.maxSize, outDir, finalDir, args });
     }
   }
   return jobs;
