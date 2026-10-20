@@ -50,7 +50,9 @@ function sanitizePresets(list) {
 }
 
 // Un job = un appel `VE_CLI.exe render`. En mode comparaison, un job par style.
-// Avec la méthode TikTok, le rendu part dans un dossier de travail caché, puis ffmpeg écrit le fichier final.
+// Le rendu part toujours dans un dossier de travail caché, jamais directement dans le dossier de sortie : Visual Enhancer
+// ignore les clips situés dans son propre dossier de sortie (« No supported images or videos found »), ce qui arrive
+// dès que la sortie est le dossier du clip. Ensuite le fichier final est déplacé (et passé à ffmpeg avec la méthode TikTok).
 function buildJobs({ files, options, outputDir, presetPath = null, idPrefix = String(Date.now()) }) {
   const o = sanitizeOptions(options);
   const jobs = [];
@@ -60,7 +62,7 @@ function buildJobs({ files, options, outputDir, presetPath = null, idPrefix = St
     for (const style of o.compare ? STYLES : [o.style]) {
       const id = `${idPrefix}-${jobs.length}`;
       const finalDir = o.compare ? path.join(outputDir, stem, `style-${style}`) : outputDir;
-      const outDir = o.tiktok ? path.join(finalDir, `.vdlss-${id}`) : finalDir;
+      const outDir = path.join(finalDir, `.vdlss-${id}`);
       const args = [
         'render', file,
         '--style', String(style),

@@ -1,7 +1,7 @@
 {
   "name": "valorant-dlss",
   "productName": "Valorant DLSS",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": true,
   "description": "Interface locale et épurée pour le Neural Rendering de Visual Enhancer",
   "author": "Morpheen",

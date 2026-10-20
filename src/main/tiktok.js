@@ -59,7 +59,8 @@ function findVideo(dir) {
 }
 
 // Applique la méthode au rendu de `workDir`. En cas d'échec, le rendu est conservé tel quel dans `finalDir`.
-async function finish({ ffmpeg, prefix = [], workDir, finalDir, stem, track, isCancelled = () => false, fit = null, onPhase = () => {} }) {
+// `method: false` : pas de méthode TikTok, le rendu est seulement déplacé (après le plafond de taille éventuel).
+async function finish({ ffmpeg, prefix = [], workDir, finalDir, stem, track, isCancelled = () => false, fit = null, onPhase = () => {}, method = true }) {
   const cleanup = () => {
     if (path.basename(workDir).startsWith('.vdlss-')) fs.rmSync(workDir, { recursive: true, force: true });
   };
@@ -83,6 +84,7 @@ async function finish({ ffmpeg, prefix = [], workDir, finalDir, stem, track, isC
 
   // Plafond de taille : appliqué au rendu avant la méthode, qui ne fait que copier les flux.
   const note = fit ? await fit(rendered) : null;
+  if (!method) return { ok: true, output: keep(), note };
   if (fit) onPhase('finish');
   const fps = parseFps((await run(ffmpeg, [...prefix, '-hide_banner', '-i', rendered], track)).stderr);
   const scale = scaleFor(fps);
