@@ -98,6 +98,7 @@ You can turn the check off in **About** (ⓘ) → *Check for updates at launch*.
 
 This is a free side project maintained by one person. To keep it sustainable:
 
+- **Read the [FAQ wiki](https://github.com/nildontsleep/val-dlss/wiki) first**: one page per common problem (engine not found, SmartScreen, TikTok file in slow motion, size cap, update button…), in English and French.
 - **Everything goes through GitHub issues.** Bugs, questions, feature requests, translations: [open an issue](../../issues/new/choose) and pick the matching template. Search existing issues first.
 - **No support on Discord** (DMs, servers, friend requests), **except for major bugs.** Even then, please open an issue so it is tracked and others can find the answer.
 

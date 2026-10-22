@@ -98,6 +98,7 @@ Tu peux désactiver la vérification dans **À propos** (ⓘ) → *Chercher les 
 
 C'est un projet perso gratuit, maintenu par une seule personne. Pour que ça reste tenable :
 
+- **Lis d'abord la [FAQ du wiki](https://github.com/nildontsleep/val-dlss/wiki)** : une page par problème courant (moteur introuvable, SmartScreen, fichier TikTok au ralenti, plafond de taille, bouton de mise à jour…), en anglais et en français.
 - **Tout passe par les issues GitHub.** Bugs, questions, demandes de fonctionnalités, traductions : [ouvre une issue](../../issues/new/choose) avec le modèle correspondant. Cherche d'abord dans les issues existantes.
 - **Aucun support sur Discord** (messages privés, serveurs, demandes d'ami), **sauf pour les bugs majeurs.** Même dans ce cas, ouvre une issue pour que ce soit suivi et que d'autres retrouvent la réponse.
 

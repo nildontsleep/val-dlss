@@ -1,0 +1,44 @@
+name: wiki
+
+# The FAQ pages live in wiki/ (reviewed through pull requests) and are published to the GitHub wiki from here.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'wiki/**'
+      - '.github/workflows/wiki.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wiki
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Publish wiki/ to the GitHub wiki
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git clone --quiet "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.wiki.git" "$RUNNER_TEMP/wiki" 2>/dev/null; then
+            echo "::error::The wiki repository is not reachable. Enable Settings > General > Features > Wiki, create a first page once from the Wiki tab, then re-run this workflow."
+            exit 1
+          fi
+          rsync -a --delete --exclude='.git' wiki/ "$RUNNER_TEMP/wiki/"
+          cd "$RUNNER_TEMP/wiki"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki already up to date."
+            exit 0
+          fi
+          git commit --quiet -m "Sync wiki from ${GITHUB_SHA::7}"
+          git push --quiet
