@@ -7,7 +7,8 @@ const path = require('node:path');
 const dir = path.join(__dirname, '..', 'wiki');
 const files = fs.readdirSync(dir).filter((f) => f.endsWith('.md'));
 const names = files.map((f) => f.slice(0, -3));
-const read = (f) => fs.readFileSync(path.join(dir, f), 'utf8');
+// Windows checks files out with CRLF line endings: compare on LF only.
+const read = (f) => fs.readFileSync(path.join(dir, f), 'utf8').replace(/\r\n/g, '\n');
 const faqPages = names.filter((n) => !['Home', '_Sidebar'].includes(n));
 
 test('the wiki has a Home, a sidebar and FAQ pages', () => {
