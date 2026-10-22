@@ -6,6 +6,8 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-5e9cff.svg)](LICENSE)
 ![Platform: Windows](https://img.shields.io/badge/platform-Windows%2011-5e9cff.svg)
 
+🌐 **[Website and FAQ](https://nildontsleep.github.io/val-dlss/)**
+
 A **local**, **Windows-only**, deliberately minimal app that applies Neural Rendering to your Valorant clips: drop a clip, pick a style, run. English by default, French one click away.
 
 It is a friendly front-end for the Neural Rendering engine of [Visual Enhancer](https://github.com/Merserk/dlss5-visual-enhancer) by Merserk. It does **not** contain the engine or any NVIDIA file: it drives the Visual Enhancer installed on your machine. The installer also ships FFmpeg, so you don't have to fetch it.
@@ -98,7 +100,7 @@ You can turn the check off in **About** (ⓘ) → *Check for updates at launch*.
 
 This is a free side project maintained by one person. To keep it sustainable:
 
-- **Read the [FAQ wiki](https://github.com/nildontsleep/val-dlss/wiki) first**: one page per common problem (engine not found, SmartScreen, TikTok file in slow motion, size cap, update button…), in English and French.
+- **Read the [FAQ](https://nildontsleep.github.io/val-dlss/faq/) first** (also as a [wiki](https://github.com/nildontsleep/val-dlss/wiki)): one page per common problem (engine not found, SmartScreen, TikTok file in slow motion, size cap, update button…), in English and French.
 - **Everything goes through GitHub issues.** Bugs, questions, feature requests, translations: [open an issue](../../issues/new/choose) and pick the matching template. Search existing issues first.
 - **No support on Discord** (DMs, servers, friend requests), **except for major bugs.** Even then, please open an issue so it is tracked and others can find the answer.
 

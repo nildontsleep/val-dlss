@@ -8,7 +8,7 @@ This is a free side project maintained by one person.
 
 **Where to ask for help**
 
-1. Read the [README](README.md) (requirements, install) and the **[FAQ wiki](https://github.com/nildontsleep/val-dlss/wiki)**: one page per common problem.
+1. Read the [README](README.md) (requirements, install) and the **[FAQ](https://nildontsleep.github.io/val-dlss/faq/)** ([wiki version](https://github.com/nildontsleep/val-dlss/wiki)): one page per common problem.
 2. Search the [existing issues](../../issues?q=is%3Aissue), open and closed.
 3. Still stuck? [Open an issue](../../issues/new/choose) and pick the right template: bug report, feature request or question.
 
@@ -39,7 +39,7 @@ C'est un projet perso gratuit, maintenu par une seule personne.
 
 **Où demander de l'aide**
 
-1. Lis le [README](README.fr.md) (prérequis, installation) et la **[FAQ du wiki](https://github.com/nildontsleep/val-dlss/wiki)** : une page par problème courant.
+1. Lis le [README](README.fr.md) (prérequis, installation) et la **[FAQ](https://nildontsleep.github.io/val-dlss/faq/)** ([version wiki](https://github.com/nildontsleep/val-dlss/wiki)) : une page par problème courant.
 2. Cherche dans les [issues existantes](../../issues?q=is%3Aissue), ouvertes et fermées.
 3. Toujours bloqué ? [Ouvre une issue](../../issues/new/choose) avec le bon modèle : bug, demande de fonctionnalité ou question.
 
