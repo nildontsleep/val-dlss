@@ -67,7 +67,8 @@ real tools.
 | `src/renderer/` | The interface: `index.html`, `styles.css`, `app.js`, `i18n.js` (dictionaries) |
 | `test/` | `node --test` tests and the fake engine/ffmpeg |
 | `scripts/vendor.js` | Copies GSAP and fonts from `node_modules` |
-| `wiki/` | The FAQ pages (one per problem, English then French), published to the GitHub wiki by the `wiki` workflow |
+| `wiki/` | The FAQ pages (one per problem, English then French), published to the GitHub wiki by the `wiki` workflow and to the website by the `pages` workflow |
+| `site/` | The website (GitHub Pages): `index.src.html` (landing, `{{en: … || fr: …}}` for both languages), `assets/`, `build.js` (also turns `wiki/` into the FAQ pages). `npm run site` builds it into `site/dist/` |
 | `.github/` | CI, issue/PR templates, labels |
 
 The renderer never talks to the system directly: everything goes through the `window.api` bridge in `src/main/preload.js`,
@@ -104,7 +105,7 @@ the `build` workflow from the Actions tab with `release_tag` = `vX.Y.Z`. The wor
 GitHub Release. Labels are defined in `.github/labels.json` and synced
 by the `labels` workflow.
 
-The FAQ: edit the pages in `wiki/` through a pull request, not in the GitHub wiki editor (the `wiki` workflow overwrites the wiki from `wiki/`). The first time, enable *Settings → General → Features → Wiki* and create a first page by hand so the wiki repository exists. A page that answers a question asked twice in issues is a good contribution.
+The website and the FAQ: edit the pages in `wiki/` and `site/` through a pull request, not in the GitHub wiki editor (the `wiki` workflow overwrites the wiki from `wiki/`). One-time setup for the website: *Settings → Pages → Build and deployment → Source: GitHub Actions*. The first time, enable *Settings → General → Features → Wiki* and create a first page by hand so the wiki repository exists. A page that answers a question asked twice in issues is a good contribution.
 
 ## Français
 
@@ -174,7 +175,8 @@ vrais outils.
 | `src/renderer/` | L'interface : `index.html`, `styles.css`, `app.js`, `i18n.js` (dictionnaires) |
 | `test/` | Tests `node --test` et faux moteur/ffmpeg |
 | `scripts/vendor.js` | Copie GSAP et les polices depuis `node_modules` |
-| `wiki/` | Les pages de la FAQ (une par problème, anglais puis français), publiées sur le wiki GitHub par le workflow `wiki` |
+| `wiki/` | Les pages de la FAQ (une par problème, anglais puis français), publiées sur le wiki GitHub par le workflow `wiki` et sur le site par le workflow `pages` |
+| `site/` | Le site (GitHub Pages) : `index.src.html` (page d'accueil, `{{en: … || fr: …}}` pour les deux langues), `assets/`, `build.js` (transforme aussi `wiki/` en pages de FAQ). `npm run site` le construit dans `site/dist/` |
 | `.github/` | CI, modèles d'issues/PR, étiquettes |
 
 Le rendu ne parle jamais directement au système : tout passe par le pont `window.api` de `src/main/preload.js`, et toute
@@ -211,4 +213,4 @@ soit lancer le workflow `build` depuis l'onglet Actions avec `release_tag` = `vX
 Release GitHub. Les étiquettes sont définies dans `.github/labels.json` et
 synchronisées par le workflow `labels`.
 
-La FAQ : modifie les pages de `wiki/` par une pull request, pas dans l'éditeur du wiki GitHub (le workflow `wiki` écrase le wiki avec `wiki/`). La première fois, active *Settings → General → Features → Wiki* et crée une première page à la main pour que le dépôt du wiki existe. Une page qui répond à une question posée deux fois dans les issues est une bonne contribution.
+Le site et la FAQ : modifie les pages de `wiki/` et `site/` par une pull request, pas dans l'éditeur du wiki GitHub (le workflow `wiki` écrase le wiki avec `wiki/`). Réglage unique pour le site : *Settings → Pages → Build and deployment → Source : GitHub Actions*. La première fois, active *Settings → General → Features → Wiki* et crée une première page à la main pour que le dépôt du wiki existe. Une page qui répond à une question posée deux fois dans les issues est une bonne contribution.
