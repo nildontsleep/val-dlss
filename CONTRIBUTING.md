@@ -67,6 +67,7 @@ real tools.
 | `src/renderer/` | The interface: `index.html`, `styles.css`, `app.js`, `i18n.js` (dictionaries) |
 | `test/` | `node --test` tests and the fake engine/ffmpeg |
 | `scripts/vendor.js` | Copies GSAP and fonts from `node_modules` |
+| `wiki/` | The FAQ pages (one per problem, English then French), published to the GitHub wiki by the `wiki` workflow |
 | `.github/` | CI, issue/PR templates, labels |
 
 The renderer never talks to the system directly: everything goes through the `window.api` bridge in `src/main/preload.js`,
@@ -102,6 +103,8 @@ Releases: bump `version` in `package.json`, merge to `main`, then either `git ta
 the `build` workflow from the Actions tab with `release_tag` = `vX.Y.Z`. The workflow publishes the portable exe as a
 GitHub Release. Labels are defined in `.github/labels.json` and synced
 by the `labels` workflow.
+
+The FAQ: edit the pages in `wiki/` through a pull request, not in the GitHub wiki editor (the `wiki` workflow overwrites the wiki from `wiki/`). The first time, enable *Settings → General → Features → Wiki* and create a first page by hand so the wiki repository exists. A page that answers a question asked twice in issues is a good contribution.
 
 ## Français
 
@@ -171,6 +174,7 @@ vrais outils.
 | `src/renderer/` | L'interface : `index.html`, `styles.css`, `app.js`, `i18n.js` (dictionnaires) |
 | `test/` | Tests `node --test` et faux moteur/ffmpeg |
 | `scripts/vendor.js` | Copie GSAP et les polices depuis `node_modules` |
+| `wiki/` | Les pages de la FAQ (une par problème, anglais puis français), publiées sur le wiki GitHub par le workflow `wiki` |
 | `.github/` | CI, modèles d'issues/PR, étiquettes |
 
 Le rendu ne parle jamais directement au système : tout passe par le pont `window.api` de `src/main/preload.js`, et toute
@@ -206,3 +210,5 @@ Releases : incrémenter `version` dans `package.json`, fusionner dans `main`, pu
 soit lancer le workflow `build` depuis l'onglet Actions avec `release_tag` = `vX.Y.Z`. Le workflow publie l'exe portable en
 Release GitHub. Les étiquettes sont définies dans `.github/labels.json` et
 synchronisées par le workflow `labels`.
+
+La FAQ : modifie les pages de `wiki/` par une pull request, pas dans l'éditeur du wiki GitHub (le workflow `wiki` écrase le wiki avec `wiki/`). La première fois, active *Settings → General → Features → Wiki* et crée une première page à la main pour que le dépôt du wiki existe. Une page qui répond à une question posée deux fois dans les issues est une bonne contribution.

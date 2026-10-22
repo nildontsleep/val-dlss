@@ -91,7 +91,7 @@ body:
     attributes:
       label: Checklist
       options:
-        - label: I searched existing issues and this is not a duplicate. / J'ai cherché et ce n'est pas un doublon.
+        - label: I searched existing issues and the FAQ wiki, and this is not a duplicate. / J'ai cherché dans les issues et la FAQ du wiki, ce n'est pas un doublon.
           required: true
         - label: The problem is in this app, not only inside Visual Enhancer itself. / Le problème vient de cette app, pas seulement de Visual Enhancer.
           required: true
