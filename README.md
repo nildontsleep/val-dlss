@@ -130,7 +130,7 @@ Issues are tagged with labels (`bug`, `major-bug`, `enhancement`, `question`, `i
 
 ## Contributing
 
-Contributions are very welcome: bug reports, feature ideas, translations, documentation, code. Read [CONTRIBUTING.md](CONTRIBUTING.md) first; it explains the setup, the project's philosophy (a minimal app, no options nobody will use, local-first) and the rules (for instance: never bundle Visual Enhancer or NVIDIA files, and FFmpeg only through the pinned download script). Issues labelled [`good first issue`](../../labels/good%20first%20issue) and [`help wanted`](../../labels/help%20wanted) are good places to start. By contributing you agree that your work is released under the [MIT License](LICENSE).
+Contributions are very welcome: bug reports, feature ideas, translations, documentation, code. Read [CONTRIBUTING.md](CONTRIBUTING.md) first; it explains the setup, the project's philosophy (a minimal app, no options nobody will use, local-first) and the rules (for instance: never bundle Visual Enhancer or NVIDIA files, and FFmpeg only through the provided download script). Issues labelled [`good first issue`](../../labels/good%20first%20issue) and [`help wanted`](../../labels/help%20wanted) are good places to start. By contributing you agree that your work is released under the [MIT License](LICENSE).
 
 Please also read the [Code of Conduct](CODE_OF_CONDUCT.md).
 
@@ -158,7 +158,7 @@ npm ci
 npm test        # unit and engine tests (no GPU: a fake engine and a fake ffmpeg are used)
 npm start       # run the app (Electron)
 npm run dist    # portable executable in dist/portable/ (run on Windows)
-npm run dist:installer   # NSIS installer in dist/installer/ (downloads and checks the pinned FFmpeg first)
+npm run dist:installer   # NSIS installer in dist/installer/ (downloads and checks FFmpeg first)
 ```
 
 Node.js 22 is used by CI. The tests need neither a GPU nor Windows.

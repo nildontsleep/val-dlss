@@ -130,7 +130,7 @@ Les issues reçoivent des étiquettes (`bug`, `major-bug`, `enhancement`, `quest
 
 ## Contribuer
 
-Les contributions sont les bienvenues : signalements de bugs, idées, traductions, documentation, code. Lis d'abord [CONTRIBUTING.md](CONTRIBUTING.md) : il explique la mise en place, la philosophie du projet (une app minimale, aucune option que personne n'utilisera, local d'abord) et les règles (par exemple : ne jamais embarquer Visual Enhancer ni des fichiers NVIDIA, et FFmpeg uniquement via le script de téléchargement épinglé). Les issues [`good first issue`](../../labels/good%20first%20issue) et [`help wanted`](../../labels/help%20wanted) sont de bons points de départ. En contribuant, tu acceptes que ton travail soit publié sous [licence MIT](LICENSE).
+Les contributions sont les bienvenues : signalements de bugs, idées, traductions, documentation, code. Lis d'abord [CONTRIBUTING.md](CONTRIBUTING.md) : il explique la mise en place, la philosophie du projet (une app minimale, aucune option que personne n'utilisera, local d'abord) et les règles (par exemple : ne jamais embarquer Visual Enhancer ni des fichiers NVIDIA, et FFmpeg uniquement via le script de téléchargement prévu). Les issues [`good first issue`](../../labels/good%20first%20issue) et [`help wanted`](../../labels/help%20wanted) sont de bons points de départ. En contribuant, tu acceptes que ton travail soit publié sous [licence MIT](LICENSE).
 
 Lis aussi le [Code de conduite](CODE_OF_CONDUCT.md).
 
@@ -158,7 +158,7 @@ npm ci
 npm test        # tests unitaires et moteur (sans GPU : faux moteur et faux ffmpeg)
 npm start       # lance l'app (Electron)
 npm run dist    # exécutable portable dans dist/portable/ (à lancer sous Windows)
-npm run dist:installer   # installeur NSIS dans dist/installer/ (télécharge et vérifie d'abord le FFmpeg épinglé)
+npm run dist:installer   # installeur NSIS dans dist/installer/ (télécharge et vérifie d'abord FFmpeg)
 ```
 
 La CI utilise Node.js 22. Les tests n'ont besoin ni d'un GPU ni de Windows.
