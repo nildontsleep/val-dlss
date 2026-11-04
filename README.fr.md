@@ -20,6 +20,7 @@ C'est une interface simple pour le moteur de Neural Rendering de [Visual Enhance
 - **Comparer** : un export par style, rangés dans des sous-dossiers.
 - **Aperçu d'une frame** (👁) : original / résultat avec un curseur de comparaison et une timeline pour choisir la frame ; il se met à jour quand tu changes un réglage. **3 styles** affiche les styles 0, 1 et 2 de la même frame côte à côte ; clique sur l'un pour l'utiliser.
 - **Réglages avancés et presets** (⚙) : Tonalité, Détails, Peau, Passes, Masque auto et qualité d'encodage, plus tes propres presets.
+- **Upscale optionnel** (×2 / ×4) avec l'upscaler de Visual Enhancer, appliqué après le rendu neural (désactivé par défaut).
 - **Plafond de taille optionnel** qui ne sacrifie jamais la qualité : un export n'est ré-encodé pour tenir dedans que si ça reste à 60 Mb/s ou plus (voir plus bas).
 - **Méthode qualité TikTok** de **paschafps** : réécrit les timestamps sans ré-encoder, pour des clips en 60, 120 ou 240 fps.
 - **Anglais et français** (sélecteur EN | FR, mémorisé).
@@ -63,11 +64,16 @@ Tes réglages sont dans `%APPDATA%\Valorant DLSS\settings.json` ; les fichiers t
 | Passes | Nombre de fois que la passe neurale est appliquée (1 à 3) |
 | Masque auto | Le masque automatique du moteur (désactivé par défaut dans Visual Enhancer) |
 | Qualité | Qualité d'encodage du fichier exporté |
+| Upscale | Agrandissement optionnel ×2 ou ×4 après le rendu (désactivé par défaut), voir plus bas |
 | Taille max | Plafond optionnel en Mo pour le fichier exporté (vide = désactivé), voir plus bas |
 
 Les valeurs avancées sont transmises à Visual Enhancer par un fichier preset que l'app écrit au format du moteur, et validé avec `--dry-run` avant chaque rendu : un preset refusé est signalé au lieu d'être ignoré en silence. Si ta version de Visual Enhancer est plus ancienne et refuse la dernière `schema_version` du preset, l'app essaie des versions plus anciennes. Le preset n'est écrit que si une valeur s'écarte des valeurs par défaut de Visual Enhancer.
 
 **Aperçu.** L'aperçu extrait une frame avec FFmpeg et la rend dans le pipeline *image* de Visual Enhancer. Une frame n'a pas de mouvement (pas de flux optique) : la vidéo finale peut légèrement différer.
+
+### Upscale
+
+**Upscale** (réglages avancés) lance la commande `upscale` de Visual Enhancer sur le rendu terminé, ×2 ou ×4. Il utilise l'upscaler par défaut du moteur (l'app n'en choisit pas), et l'app vérifie avec `--dry-run` que le moteur accepte la demande *avant* de lancer un long rendu. Si l'étape d'upscale échoue, ton rendu neural est conservé tel quel et la carte le dit. Attention : ×4 sur un clip 1080p donne du 8K, le clip est encodé deux fois (rendu, puis upscale), et je n'ai pas pu mesurer ici l'effet d'un upscale sur la qualité une fois le fichier traité par TikTok ou Discord. Désactivé par défaut. Voir [la page de la FAQ](https://nildontsleep.github.io/val-dlss/faq/Upscale-failed-or-too-heavy.html).
 
 ### Taille max, sans perdre en qualité
 
@@ -157,7 +163,7 @@ npm run dist:installer   # installeur NSIS dans dist/installer/ (télécharge et
 
 La CI utilise Node.js 22. Les tests n'ont besoin ni d'un GPU ni de Windows.
 
-La CI ([`build.yml`](.github/workflows/build.yml)) teste et construit sur `windows-latest`. Pour publier l'exécutable en Release, pousse un tag `v*` (`git tag v0.5.1 && git push origin v0.5.1`) ou lance manuellement le workflow **build** depuis l'onglet *Actions* en renseignant `release_tag` (par exemple `v0.5.1`).
+La CI ([`build.yml`](.github/workflows/build.yml)) teste et construit sur `windows-latest`. Pour publier l'exécutable en Release, pousse un tag `v*` (`git tag v0.6.0 && git push origin v0.6.0`) ou lance manuellement le workflow **build** depuis l'onglet *Actions* en renseignant `release_tag` (par exemple `v0.6.0`).
 
 ## Avertissements
 

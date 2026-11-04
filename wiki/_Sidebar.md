@@ -24,6 +24,7 @@
 - ["Your Visual Enhancer refused the advanced settings"](Advanced-settings-refused)
 - [The exported file is huge](Export-is-huge)
 - [Max size says "kept as is" or "could not fit"](Max-size-kept-as-is)
+- [Upscale fails, is slow, or makes a huge file](Upscale-failed-or-too-heavy)
 - [My TikTok file is in slow motion](TikTok-file-is-slowed-down)
 - ["fps not supported" / "fps not found" with TikTok](fps-not-supported-60-120-240)
 

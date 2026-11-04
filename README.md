@@ -20,6 +20,7 @@ It is a friendly front-end for the Neural Rendering engine of [Visual Enhancer](
 - **Compare**: one export per style, in separate subfolders.
 - **Preview one frame** (👁): original vs result with a draggable divider and a timeline scrubber; it refreshes as you change settings. **3 styles** shows styles 0, 1 and 2 of the same frame side by side; click one to use it.
 - **Advanced settings and presets** (⚙): Tone, Detail, Skin, Passes, Auto mask and encode quality, plus your own saved presets.
+- **Optional upscale** (×2 / ×4) with Visual Enhancer's upscaler, applied after the neural render (off by default).
 - **Optional size cap** that never trades away quality: an export is only re-encoded to fit if that stays at 60 Mb/s or more (see below).
 - **TikTok quality method** by **paschafps**: rewrites timestamps without re-encoding, for 60, 120 or 240 fps clips.
 - **English and French** (EN | FR switch, remembered).
@@ -63,11 +64,16 @@ Your settings live in `%APPDATA%\Valorant DLSS\settings.json`; temporary preview
 | Passes | How many times the neural pass is applied (1 to 3) |
 | Auto mask | The engine's automatic mask (off by default in Visual Enhancer) |
 | Quality | Encoding quality of the exported file |
+| Upscale | Optional ×2 or ×4 enlargement after the render (off by default), see below |
 | Max size | Optional size cap in MB for the exported file (empty = off), see below |
 
 Advanced values are sent to Visual Enhancer through a preset file the app writes in the engine's own format, and validated with `--dry-run` before every run: a rejected preset is reported instead of silently ignored. If your Visual Enhancer is older and refuses the newest preset `schema_version`, the app falls back to older ones. The preset is only written when a value differs from Visual Enhancer's defaults.
 
 **Preview.** The preview extracts one frame with FFmpeg and renders it through Visual Enhancer's *image* pipeline. One frame has no motion (no optical flow), so the final video can differ slightly.
+
+### Upscale
+
+**Upscale** (Advanced settings) runs Visual Enhancer's `upscale` command on the finished render, ×2 or ×4. It uses the engine's default upscaler (the app does not choose one), and the app checks with `--dry-run` that the engine accepts the request *before* starting a long render. If the upscale step fails, your neural render is kept as is and the card says so. Be aware that ×4 of a 1080p clip is 8K, that the clip is encoded twice (render, then upscale), and that I could not measure here what an upscale does to quality once TikTok or Discord process the file. Off by default. See [the FAQ page](https://nildontsleep.github.io/val-dlss/faq/Upscale-failed-or-too-heavy.html).
 
 ### Max size, without giving up quality
 
@@ -157,7 +163,7 @@ npm run dist:installer   # NSIS installer in dist/installer/ (downloads and chec
 
 Node.js 22 is used by CI. The tests need neither a GPU nor Windows.
 
-CI ([`build.yml`](.github/workflows/build.yml)) tests and builds on `windows-latest`. To publish the executable as a Release, either push a `v*` tag (`git tag v0.5.1 && git push origin v0.5.1`) or run the **build** workflow manually from the *Actions* tab and fill in `release_tag` (for example `v0.5.1`).
+CI ([`build.yml`](.github/workflows/build.yml)) tests and builds on `windows-latest`. To publish the executable as a Release, either push a `v*` tag (`git tag v0.6.0 && git push origin v0.6.0`) or run the **build** workflow manually from the *Actions* tab and fill in `release_tag` (for example `v0.6.0`).
 
 ## Disclaimers
 
