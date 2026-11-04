@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { finish, run: runCapture, lastLine } = require('./tiktok');
 const { fitFile, noteFor } = require('./fit');
+const { upscaleFile, noteForUpscale, validateUpscale } = require('./upscale');
 
 const ENGINE_EXE = 'VE_CLI.exe';
 
@@ -68,6 +69,17 @@ class Engine {
 
     const runOne = (job) =>
       new Promise((resolve) => {
+        const upscale = async (file) => {
+          const res = await upscaleFile({
+            exe: this.exe,
+            prefix: this.prefixArgs,
+            file,
+            scale: job.upscale,
+            track: (c) => running.set(`${job.id}:post`, c),
+            isCancelled: () => cancelled,
+          });
+          return { file: res.file || null, note: noteForUpscale(res) };
+        };
         const fit = async (file) =>
           fitFile({
             ffmpeg: this.ffmpeg,
@@ -135,7 +147,7 @@ class Engine {
             }
             onEvent({ id: job.id, state: 'error', message: reason || tail.slice(-2).join(' · ') || `code ${code}` });
           } else {
-            const firstPhase = job.maxMB ? 'fit' : job.tiktok ? 'finish' : null;
+            const firstPhase = job.upscale ? 'upscale' : job.maxMB ? 'fit' : job.tiktok ? 'finish' : null;
             if (firstPhase) onEvent({ id: job.id, state: 'running', phase: firstPhase, progress: null });
             const res = await finish({
               method: job.tiktok,
@@ -146,6 +158,7 @@ class Engine {
               stem: job.stem,
               track: (c) => running.set(`${job.id}:post`, c),
               isCancelled: () => cancelled,
+              upscale: job.upscale ? upscale : null,
               fit: job.maxMB ? async (f) => noteFor(await fit(f)) : null,
               onPhase: (phase) => onEvent({ id: job.id, state: 'running', phase, progress: null }),
             });
@@ -195,4 +208,4 @@ async function validatePreset({ exe, prefix = [], file, presetPath, style, stren
   return { ok: false, detail: (plan && plan.error) || lastLine(r.stderr) || `code ${r.code}` };
 }
 
-module.exports = { Engine, ENGINE_EXE, findEngine, autodetect, killTree, validatePreset };
+module.exports = { Engine, ENGINE_EXE, findEngine, autodetect, killTree, validatePreset, validateUpscale };
