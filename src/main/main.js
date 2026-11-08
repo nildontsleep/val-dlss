@@ -4,7 +4,7 @@ const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 const { Store } = require('./store');
-const { Engine, ENGINE_EXE, findEngine, autodetect, killTree, validatePreset } = require('./engine');
+const { Engine, ENGINE_EXE, findEngine, autodetect, killTree, validatePreset, validateUpscale } = require('./engine');
 const { sanitizeOptions, sanitizePresets, buildJobs, LANGS, STYLES } = require('./args');
 const { findFfmpegIn, findFfmpegOnPath, checkFfmpeg } = require('./tiktok');
 const { bundledFfmpeg, pickFfmpeg } = require('./ffmpeg-path');
@@ -254,6 +254,10 @@ function register() {
       if (previewRun) previewRun.cancel();
 
       const exe = path.join(dir, ENGINE_EXE);
+      if (options.upscale) {
+        const v = await validateUpscale({ exe, file: files[0], scale: options.upscale });
+        if (!v.ok) return { ok: false, error: 'upscale', detail: v.detail };
+      }
       let presetPath = null;
       if (needsPreset(options)) {
         const prep = await preparePreset({ exe, file: files[0], options });

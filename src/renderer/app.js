@@ -15,7 +15,7 @@
   };
   const fmtTime = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
-  const OPTION_KEYS = ['style', 'strength', 'compare', 'tiktok', 'tone', 'structure', 'skin', 'passes', 'autoMask', 'quality', 'maxSize'];
+  const OPTION_KEYS = ['style', 'strength', 'compare', 'tiktok', 'tone', 'structure', 'skin', 'passes', 'autoMask', 'quality', 'upscale', 'maxSize'];
   const PRESET_KEYS = ['style', 'strength', 'tone', 'structure', 'skin', 'passes', 'autoMask', 'quality'];
   const DEFAULTS = { style: 2, strength: 1, tone: 1, structure: 1, skin: 1, passes: 1, autoMask: false, quality: 'best' };
   const ADV_KEYS = ['tone', 'structure', 'skin', 'passes', 'autoMask', 'quality'];
@@ -139,6 +139,7 @@
     setSeg('#style', s.style, false);
     setSeg('#passes', s.passes, false);
     setSeg('#quality', s.quality, false);
+    setSeg('#upscale', s.upscale || 0, false);
     for (const id of ['strength', 'tone', 'structure', 'skin']) {
       $(`#${id}`).value = s[id];
       paintRange($(`#${id}`));
@@ -639,6 +640,7 @@
     if (it.state === 'running') {
       if (it.phase === 'finish') label = t('state.finish');
       else if (it.phase === 'fit') label = t('state.fit');
+      else if (it.phase === 'upscale') label = t('state.upscale');
       else if (it.progress != null) label += ` · ${Math.round(it.progress)}%`;
     }
     li.querySelector('.job-state').textContent = label;
@@ -720,6 +722,7 @@
       else if (res.error === 'ffmpeg') openModal('#modal-ffmpeg');
       else if (res.error === 'busy') toast(t('toast.busy'));
       else if (res.error === 'preset') toast(t('toast.preset', { detail: res.detail || '' }));
+      else if (res.error === 'upscale') toast(t('toast.upscale', { detail: res.detail || '' }));
       else toast(t('toast.noValid'));
       return;
     }
@@ -766,6 +769,12 @@
     $('#automask').addEventListener('change', (e) => {
       save({ autoMask: e.target.checked });
       onParamChange();
+    });
+    $('#upscale').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-v]');
+      if (!b) return;
+      save({ upscale: Number(b.dataset.v) });
+      setSeg('#upscale', b.dataset.v, true);
     });
     $('#maxsize').addEventListener('change', (e) => {
       const n = Math.max(0, Math.round(Number(e.target.value) || 0));

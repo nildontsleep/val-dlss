@@ -60,7 +60,7 @@ function findVideo(dir) {
 
 // Applique la méthode au rendu de `workDir`. En cas d'échec, le rendu est conservé tel quel dans `finalDir`.
 // `method: false` : pas de méthode TikTok, le rendu est seulement déplacé (après le plafond de taille éventuel).
-async function finish({ ffmpeg, prefix = [], workDir, finalDir, stem, track, isCancelled = () => false, fit = null, onPhase = () => {}, method = true }) {
+async function finish({ ffmpeg, prefix = [], workDir, finalDir, stem, track, isCancelled = () => false, fit = null, upscale = null, onPhase = () => {}, method = true }) {
   const cleanup = () => {
     if (path.basename(workDir).startsWith('.vdlss-')) fs.rmSync(workDir, { recursive: true, force: true });
   };
@@ -82,10 +82,21 @@ async function finish({ ffmpeg, prefix = [], workDir, finalDir, stem, track, isC
     return dest;
   };
 
-  // Plafond de taille : appliqué au rendu avant la méthode, qui ne fait que copier les flux.
-  const note = fit ? await fit(rendered) : null;
+  // Upscale puis plafond de taille, tous deux sur le rendu, avant la méthode qui ne fait que copier les flux.
+  let upNote = null;
+  if (upscale) {
+    const up = await upscale(rendered);
+    if (up.file) rendered = up.file;
+    if (isCancelled()) return { ok: false, cancelled: true, output: keep() };
+    upNote = up.note || null;
+    if (fit) onPhase('fit');
+  }
+  const fitNote = fit ? await fit(rendered) : null;
+  // une seule note par clip : un problème (échec, plancher) passe avant une information
+  const problem = (n) => n && /(failed|floor)$/.test(n.code);
+  const note = problem(upNote) ? upNote : problem(fitNote) ? fitNote : fitNote || upNote;
   if (!method) return { ok: true, output: keep(), note };
-  if (fit) onPhase('finish');
+  if (fit || upscale) onPhase('finish');
   const fps = parseFps((await run(ffmpeg, [...prefix, '-hide_banner', '-i', rendered], track)).stderr);
   const scale = scaleFor(fps);
   if (!scale) {
@@ -142,4 +153,4 @@ async function checkFfmpeg(exe, prefix = []) {
   return (await run(exe, [...prefix, '-version'])).code === 0;
 }
 
-module.exports = { parseFps, scaleFor, finish, findFfmpegIn, findFfmpegOnPath, checkFfmpeg, run, lastLine };
+module.exports = { parseFps, scaleFor, finish, findFfmpegIn, findFfmpegOnPath, checkFfmpeg, run, lastLine, findVideo };

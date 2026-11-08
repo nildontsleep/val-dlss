@@ -21,6 +21,7 @@ if (flag('--preset')) {
   if (preset.schema_version > Number(process.env.FAKE_MAX_SCHEMA || 38)) fail(`schema_version ${preset.schema_version} non pris en charge`);
   if (process.env.FAKE_PRESET_LOG) fs.appendFileSync(process.env.FAKE_PRESET_LOG, JSON.stringify(preset.settings) + '\n');
 }
+if (cmd === 'upscale' && has('--dry-run') && process.env.FAKE_UPSCALE_REFUSE) fail('upscale not supported on this GPU');
 if (has('--dry-run')) {
   console.log(JSON.stringify({ ok: true, dry_run: true, total: 1, items: [{ input_path: input, stages: ['neural_model', 'export'] }] }));
   process.exit(0);
@@ -31,6 +32,16 @@ if (input && input.includes('fail')) {
   process.exit(1);
 }
 
+if (cmd === 'upscale') {
+  // `upscale <clip> --scale N --json -o <dossier>` : écrit <nom>_visual_enhancer.mp4 (le contenu rappelle l'entrée)
+  if (process.env.FAKE_UPSCALE_FAIL) fail('upscale crashed', 1);
+  if (process.env.FAKE_UPSCALE_LOG) fs.appendFileSync(process.env.FAKE_UPSCALE_LOG, JSON.stringify({ input, scale: flag('--scale'), out }) + '\n');
+  const up = path.join(out, `${path.parse(input).name}_visual_enhancer.mp4`);
+  fs.mkdirSync(out, { recursive: true });
+  fs.copyFileSync(input, up);
+  console.log(JSON.stringify({ ok: true, items: [{ input_path: input, output_path: up, state: 'complete' }] }));
+  process.exit(0);
+}
 const isImage = /\.(png|jpe?g)$/i.test(input);
 // Comme la vraie CLI : un clip situé dans le dossier de sortie n'est pas pris en entrée.
 if (!isImage && path.resolve(path.dirname(input)) === path.resolve(out)) fail(`No supported images or videos found: ${input}`);
